@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event'
 import type { AgentInstance, AgentRun, ChatMessage } from '../types/agent'
 import type { Project } from '../types/project'
 import { useAgentStore } from '../stores/agentStore'
+import { extractLearnings, getRelevantContext } from './knowledge'
 import { useChatStore } from '../stores/chatStore'
 
 // ── Types ──
@@ -248,9 +249,13 @@ async function planTask(prompt: string, project: Project): Promise<ExecutionPlan
     timestamp: new Date().toISOString(),
   })
 
+  // Inject knowledge base context
+  const kbContext = await getRelevantContext(project)
+
   const plannerPrompt = `Projekt: ${project.name}
 Pfad: ${project.path}
 Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}
+${kbContext}
 
 Aufgabe vom User: ${prompt}
 
@@ -459,6 +464,12 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
     await verifyWork(plan, project)
 
     // Done
+    // Extract learnings before finishing
+    const finishedRun = useAgentStore.getState().currentRun
+    if (finishedRun) {
+      await extractLearnings(finishedRun, project)
+    }
+
     agentStore.finishRun('Alle Phasen abgeschlossen: Plan → Execute → Verify')
     chatStore.addMessage({
       id: crypto.randomUUID(),
