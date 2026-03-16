@@ -65,6 +65,14 @@ async fn spawn_agent(
         status: "running".to_string(),
     });
 
+    // Validate and normalize project path
+    let project_dir = std::path::Path::new(&project_path);
+    if !project_dir.exists() || !project_dir.is_dir() {
+        return Err(format!("Project path does not exist or is not a directory: {}", project_path));
+    }
+    let canonical_path = project_dir.canonicalize()
+        .map_err(|e| format!("Failed to resolve path '{}': {}", project_path, e))?;
+
     let mut cmd = Command::new("claude");
     cmd.arg("-p")
         .arg(&prompt)
@@ -80,7 +88,7 @@ async fn spawn_agent(
         cmd.arg("--model").arg(model_id);
     }
 
-    cmd.current_dir(&project_path)
+    cmd.current_dir(&canonical_path)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
