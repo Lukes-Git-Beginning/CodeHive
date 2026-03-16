@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, Cpu, AlertCircle } from 'lucide-react'
+import { Send, Bot, User, Cpu, AlertCircle, Zap } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import { useProjectStore } from '../../stores/projectStore'
+import { orchestrate } from '../../services/orchestrator'
 import type { ChatMessage } from '../../types/agent'
 
 export function ChatPanel() {
@@ -16,7 +17,7 @@ export function ChatPanel() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || isProcessing) return
+    if (!input.trim() || isProcessing || !activeProject) return
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -26,21 +27,21 @@ export function ChatPanel() {
     }
 
     addMessage(userMessage)
+    const prompt = input.trim()
     setInput('')
     setProcessing(true)
 
-    // TODO: Send to orchestrator agent via Tauri IPC
-    // For now, simulate a response
-    setTimeout(() => {
-      const systemMessage: ChatMessage = {
+    try {
+      await orchestrate(prompt, activeProject)
+    } catch (err) {
+      addMessage({
         id: crypto.randomUUID(),
-        role: 'orchestrator',
-        content: `Ich analysiere deine Anfrage "${userMessage.content}" im Kontext von ${activeProject?.name || 'keinem Projekt'}...\n\n🔍 Agent-Integration wird in Phase 2 implementiert. Aktuell siehst du die UI-Vorschau.`,
+        role: 'system',
+        content: `Fehler beim Starten der Agenten: ${err}`,
         timestamp: new Date().toISOString(),
-      }
-      addMessage(systemMessage)
+      })
       setProcessing(false)
-    }, 1500)
+    }
   }
 
   const getMessageIcon = (msg: ChatMessage) => {
@@ -48,7 +49,7 @@ export function ChatPanel() {
       case 'user':
         return <User className="w-5 h-5 text-accent" />
       case 'orchestrator':
-        return <Bot className="w-5 h-5 text-success" />
+        return <Zap className="w-5 h-5 text-success" />
       case 'agent':
         return <Cpu className="w-5 h-5 text-blue-400" />
       case 'system':
@@ -63,10 +64,28 @@ export function ChatPanel() {
       case 'orchestrator':
         return 'Orchestrator'
       case 'agent':
-        return msg.agentRole || 'Agent'
+        return msg.agentRole
+          ? msg.agentRole.charAt(0).toUpperCase() + msg.agentRole.slice(1)
+          : 'Agent'
       case 'system':
         return 'System'
     }
+  }
+
+  const getRoleBadgeColor = (msg: ChatMessage) => {
+    if (msg.role === 'agent') {
+      const colors: Record<string, string> = {
+        frontend: 'bg-blue-500/20 text-blue-400',
+        backend: 'bg-green-500/20 text-green-400',
+        testing: 'bg-purple-500/20 text-purple-400',
+        architect: 'bg-orange-500/20 text-orange-400',
+        devops: 'bg-cyan-500/20 text-cyan-400',
+        security: 'bg-red-500/20 text-red-400',
+        uiux: 'bg-pink-500/20 text-pink-400',
+      }
+      return colors[msg.agentRole || ''] || 'bg-gray-500/20 text-gray-400'
+    }
+    return ''
   }
 
   return (
@@ -79,11 +98,30 @@ export function ChatPanel() {
             <h3 className="text-lg font-medium mb-1">
               {activeProject ? `Projekt: ${activeProject.name}` : 'Kein Projekt ausgewählt'}
             </h3>
-            <p className="text-sm text-center max-w-md">
+            <p className="text-sm text-center max-w-md mb-6">
               {activeProject
                 ? 'Beschreibe was du bauen oder ändern möchtest. Der Orchestrator analysiert die Aufgabe und spawnt die passenden Agenten.'
                 : 'Wähle zuerst ein Projekt in der Sidebar aus oder füge ein neues hinzu.'}
             </p>
+            {activeProject && (
+              <div className="grid grid-cols-2 gap-2 max-w-sm">
+                {[
+                  'Füge ein neues Feature hinzu',
+                  'Finde und behebe den Bug in...',
+                  'Schreibe Tests für...',
+                  'Refactore die...',
+                ].map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    onClick={() => setInput(suggestion)}
+                    className="text-xs bg-bg-card border border-border rounded-lg px-3 py-2
+                               hover:border-accent/50 hover:text-accent transition-colors text-left"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           messages.map((msg) => (
@@ -102,9 +140,16 @@ export function ChatPanel() {
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-text-muted">
-                    {getMessageLabel(msg)}
-                  </span>
+                  {msg.role === 'agent' && msg.agentRole && (
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${getRoleBadgeColor(msg)}`}>
+                      {getMessageLabel(msg)}
+                    </span>
+                  )}
+                  {msg.role !== 'agent' && (
+                    <span className="text-xs font-semibold text-text-muted">
+                      {getMessageLabel(msg)}
+                    </span>
+                  )}
                   <span className="text-xs text-text-muted">
                     {new Date(msg.timestamp).toLocaleTimeString('de-DE')}
                   </span>
@@ -119,7 +164,7 @@ export function ChatPanel() {
         )}
         {isProcessing && (
           <div className="flex gap-3">
-            <Bot className="w-5 h-5 text-success shrink-0 mt-1" />
+            <Zap className="w-5 h-5 text-success shrink-0 mt-1" />
             <div className="bg-bg-card border border-border rounded-lg px-4 py-3">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
@@ -127,7 +172,7 @@ export function ChatPanel() {
                   <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                   <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
-                <span className="text-xs text-text-muted">Orchestrator denkt nach...</span>
+                <span className="text-xs text-text-muted">Agenten arbeiten...</span>
               </div>
             </div>
           </div>

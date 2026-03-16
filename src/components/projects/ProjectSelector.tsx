@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { FolderOpen, Plus, Trash2, ChevronRight, Code2 } from 'lucide-react'
+import { FolderOpen, Plus, ChevronRight, Code2, Loader2 } from 'lucide-react'
 import { useProjectStore } from '../../stores/projectStore'
+import { detectTechStack } from '../../services/orchestrator'
 import type { Project } from '../../types/project'
 
 interface ProjectSelectorProps {
@@ -8,19 +9,31 @@ interface ProjectSelectorProps {
 }
 
 export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
-  const { projects, addProject, removeProject, setActiveProject } = useProjectStore()
+  const { projects, addProject, setActiveProject } = useProjectStore()
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')
   const [newPath, setNewPath] = useState('')
+  const [detecting, setDetecting] = useState(false)
+  const [detectedStack, setDetectedStack] = useState<string[]>([])
 
-  const handleAddProject = () => {
+  const handlePathChange = async (path: string) => {
+    setNewPath(path)
+    if (path.trim().length > 3) {
+      setDetecting(true)
+      const stack = await detectTechStack(path.trim())
+      setDetectedStack(stack)
+      setDetecting(false)
+    }
+  }
+
+  const handleAddProject = async () => {
     if (!newName.trim() || !newPath.trim()) return
 
     const project: Project = {
       id: crypto.randomUUID(),
       name: newName.trim(),
       path: newPath.trim(),
-      techStack: [],
+      techStack: detectedStack,
       description: '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -29,6 +42,7 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
     addProject(project)
     setNewName('')
     setNewPath('')
+    setDetectedStack([])
     setShowAdd(false)
     setActiveProject(project.id)
     onProjectSelect()
@@ -112,16 +126,43 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
                 <input
                   type="text"
                   value={newPath}
-                  onChange={(e) => setNewPath(e.target.value)}
+                  onChange={(e) => handlePathChange(e.target.value)}
                   placeholder="z.B. C:\Users\Luke\Documents\MeinProjekt"
                   className="w-full bg-bg-card border border-border rounded-lg px-3 py-2 text-sm
                              text-text-primary placeholder-text-muted focus:outline-none focus:border-accent"
                 />
               </div>
+
+              {/* Detected Tech Stack */}
+              {(detecting || detectedStack.length > 0) && (
+                <div>
+                  <label className="text-xs text-text-muted mb-1 block">Erkannter Tech-Stack</label>
+                  <div className="flex flex-wrap gap-1">
+                    {detecting ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-text-muted">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Analysiere...
+                      </span>
+                    ) : (
+                      detectedStack.map((tech) => (
+                        <span
+                          key={tech}
+                          className="text-xs bg-accent/20 text-accent rounded px-2 py-0.5"
+                        >
+                          {tech}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex gap-2 mt-4">
               <button
-                onClick={() => setShowAdd(false)}
+                onClick={() => {
+                  setShowAdd(false)
+                  setDetectedStack([])
+                }}
                 className="flex-1 bg-bg-hover text-text-secondary py-2 rounded-lg text-sm hover:text-text-primary transition-colors"
               >
                 Abbrechen
