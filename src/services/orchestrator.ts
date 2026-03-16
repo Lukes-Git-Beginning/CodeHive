@@ -302,11 +302,20 @@ Analysiere die Aufgabe und erstelle einen detaillierten Task-Plan als JSON.`
 
     return { goals: plan.goals, tasks: plan.tasks, waves }
   } catch (err) {
-    // Fallback: Create a single general task
+    // Show the raw planner output so user can see what the agent analyzed
+    if (output && output.trim()) {
+      chatStore.addMessage({
+        id: crypto.randomUUID(),
+        role: 'orchestrator',
+        content: output.length > 3000 ? output.slice(0, 3000) + '\n\n[...truncated]' : output,
+        timestamp: new Date().toISOString(),
+      })
+    }
+
     chatStore.addMessage({
       id: crypto.randomUUID(),
       role: 'system',
-      content: `Plan-Parsing fehlgeschlagen, verwende Fallback-Modus. (${err})`,
+      content: `Plan konnte nicht als JSON geparsed werden — Ergebnis wird direkt ausgeführt.`,
       timestamp: new Date().toISOString(),
     })
 

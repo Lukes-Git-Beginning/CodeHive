@@ -5,10 +5,13 @@ import { useAgentStore } from '../../stores/agentStore'
 import type { AgentInstance, AgentStatus } from '../../types/agent'
 import { StatusDot } from '../ui/StatusDot'
 
-const statusMap: Record<AgentStatus, { color: string; dotStatus: 'online' | 'busy' | 'idle' | 'error'; label: string }> = {
+const DEFAULT_STATUS = { color: 'text-cyan', dotStatus: 'busy' as const, label: 'Active' }
+
+const statusMap: Record<string, { color: string; dotStatus: 'online' | 'busy' | 'idle' | 'error'; label: string }> = {
   idle: { color: 'text-text-muted', dotStatus: 'idle', label: 'Idle' },
   thinking: { color: 'text-cyan', dotStatus: 'busy', label: 'Thinking' },
   working: { color: 'text-accent', dotStatus: 'online', label: 'Working' },
+  running: { color: 'text-accent', dotStatus: 'online', label: 'Running' },
   done: { color: 'text-accent', dotStatus: 'online', label: 'Done' },
   error: { color: 'text-danger', dotStatus: 'error', label: 'Error' },
 }
@@ -34,7 +37,7 @@ const phaseLabels: Record<string, { label: string; icon: typeof Bot; color: stri
 
 function AgentCard({ agent }: { agent: AgentInstance }) {
   const [expanded, setExpanded] = useState(false)
-  const status = statusMap[agent.status]
+  const status = statusMap[agent.status] || DEFAULT_STATUS
   const roleStyle = roleColors[agent.role] || 'text-text-secondary border-border bg-bg-surface'
   const isActive = agent.status === 'thinking' || agent.status === 'working'
 

@@ -5,36 +5,9 @@ import { OfficeState } from '../../office/engine/officeState'
 import { startGameLoop } from '../../office/engine/gameLoop'
 import { renderFrame } from '../../office/engine/renderer'
 import { TILE_SIZE } from '../../office/types'
-import type { OfficeLayout, TileType } from '../../office/types'
+import type { OfficeLayout } from '../../office/types'
 import { loadAllAssets } from '../../office/assetLoader'
-
-// Build a small office layout with desks
-function createOfficeLayout(): OfficeLayout {
-  const cols = 16
-  const rows = 10
-  const tiles: TileType[] = []
-
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      if (r === 0 || r === rows - 1 || c === 0 || c === cols - 1) {
-        tiles.push(0 as TileType) // WALL
-      } else {
-        tiles.push(1 as TileType) // FLOOR_1
-      }
-    }
-  }
-
-  return {
-    version: 1,
-    cols,
-    rows,
-    tiles,
-    furniture: [],
-    tileColors: tiles.map((t) =>
-      t === 0 ? null : { h: 220, s: 15, b: -15, c: 0 }
-    ),
-  }
-}
+import { deserializeLayout } from '../../office/layout/layoutSerializer'
 
 const ROLE_PALETTE: Record<string, number> = {
   orchestrator: 0,
@@ -47,29 +20,40 @@ const ROLE_PALETTE: Record<string, number> = {
   uiux: 1,
 }
 
+async function loadOfficeLayout(): Promise<OfficeLayout | null> {
+  try {
+    const resp = await fetch('/assets/default-layout.json')
+    if (!resp.ok) return null
+    const json = await resp.text()
+    return deserializeLayout(json)
+  } catch {
+    return null
+  }
+}
+
 export function OfficeView() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const officeRef = useRef<OfficeState | null>(null)
   const panRef = useRef({ x: 0, y: 0 })
   const zoomRef = useRef(3)
   const stopRef = useRef<(() => void) | null>(null)
-  const agentMapRef = useRef(new Map<string, number>()) // string agentId → numeric office id
+  const agentMapRef = useRef(new Map<string, number>())
   const nextIdRef = useRef(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const { currentRun } = useAgentStore()
 
-  // Load assets and initialize
+  // Load assets + layout
   useEffect(() => {
     let cancelled = false
 
     async function init() {
       try {
-        const success = await loadAllAssets()
+        // Load sprites first
+        const assetsOk = await loadAllAssets()
         if (cancelled) return
-
-        if (!success) {
+        if (!assetsOk) {
           setError('Assets konnten nicht geladen werden')
           setLoading(false)
           return
@@ -88,46 +72,58 @@ export function OfficeView() {
     return () => { cancelled = true }
   }, [])
 
-  // Initialize office + game loop after loading
+  // Initialize office + game loop
   useEffect(() => {
     if (loading || error || !canvasRef.current) return
 
     const canvas = canvasRef.current
-    const layout = createOfficeLayout()
-    const office = new OfficeState(layout)
-    officeRef.current = office
 
-    // Center camera
-    const centerX = (layout.cols * TILE_SIZE) / 2
-    const centerY = (layout.rows * TILE_SIZE) / 2
-    panRef.current = {
-      x: canvas.width / 2 - centerX * zoomRef.current,
-      y: canvas.height / 2 - centerY * zoomRef.current,
-    }
+    // Load the real office layout
+    loadOfficeLayout().then((layout) => {
+      // Use loaded layout or create OfficeState without layout (will use createDefaultLayout internally)
+      const office = layout ? new OfficeState(layout) : new OfficeState()
+      officeRef.current = office
 
-    const stop = startGameLoop(canvas, {
-      update: (dt: number) => office.update(dt),
-      render: (ctx: CanvasRenderingContext2D) => {
-        ctx.fillStyle = '#0f0f23'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
+      // Center camera on the office
+      const cols = layout?.cols || 20
+      const rows = layout?.rows || 11
+      const centerX = (cols * TILE_SIZE) / 2
+      const centerY = (rows * TILE_SIZE) / 2
+      panRef.current = {
+        x: canvas.width / 2 - centerX * zoomRef.current,
+        y: canvas.height / 2 - centerY * zoomRef.current,
+      }
 
-        renderFrame(
-          ctx,
-          canvas.width,
-          canvas.height,
-          office.tileMap,
-          office.furniture,
-          office.getCharacters(),
-          zoomRef.current,
-          panRef.current.x,
-          panRef.current.y,
-        )
-      },
+      const stop = startGameLoop(canvas, {
+        update: (dt: number) => office.update(dt),
+        render: (ctx: CanvasRenderingContext2D) => {
+          ctx.fillStyle = '#0a0e27'
+          ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+          renderFrame(
+            ctx,
+            canvas.width,
+            canvas.height,
+            office.tileMap,
+            office.furniture,
+            office.getCharacters(),
+            zoomRef.current,
+            panRef.current.x,
+            panRef.current.y,
+            undefined,
+            undefined,
+            layout?.tileColors || undefined,
+            cols,
+            rows,
+          )
+        },
+      })
+
+      stopRef.current = stop
     })
 
-    stopRef.current = stop
     return () => {
-      stop()
+      if (stopRef.current) stopRef.current()
       stopRef.current = null
       officeRef.current = null
     }
@@ -146,17 +142,6 @@ export function OfficeView() {
       canvas.height = parent.clientHeight * dpr
       canvas.style.width = `${parent.clientWidth}px`
       canvas.style.height = `${parent.clientHeight}px`
-
-      // Re-center if office exists
-      if (officeRef.current) {
-        const layout = createOfficeLayout()
-        const centerX = (layout.cols * TILE_SIZE) / 2
-        const centerY = (layout.rows * TILE_SIZE) / 2
-        panRef.current = {
-          x: canvas.width / 2 - centerX * zoomRef.current,
-          y: canvas.height / 2 - centerY * zoomRef.current,
-        }
-      }
     }
 
     resize()
@@ -165,7 +150,7 @@ export function OfficeView() {
     return () => observer.disconnect()
   }, [loading])
 
-  // Sync agents from store
+  // Sync agents
   useEffect(() => {
     const office = officeRef.current
     if (!office || !currentRun) return
@@ -174,28 +159,24 @@ export function OfficeView() {
       let numId = agentMapRef.current.get(agent.id)
       if (numId === undefined) {
         numId = nextIdRef.current++
-        const palette = ROLE_PALETTE[agent.role] ?? 0
+        const palette = ROLE_PALETTE[agent.role] ?? (numId % 6)
         const hueShift = (palette * 60) % 360
         try {
           office.addAgent(numId, palette, hueShift)
           agentMapRef.current.set(agent.id, numId)
-        } catch { /* might already exist */ }
+        } catch { /* ok */ }
       }
 
-      // Update activity
       try {
         const isActive = agent.status === 'working' || agent.status === 'thinking'
         office.setAgentActive(numId, isActive)
-        if (agent.status === 'working') {
-          office.setAgentTool(numId, 'Edit')
-        } else if (agent.status === 'thinking') {
-          office.setAgentTool(numId, 'Read')
-        }
-      } catch { /* character might not exist */ }
+        if (agent.status === 'working') office.setAgentTool(numId, 'Edit')
+        else if (agent.status === 'thinking') office.setAgentTool(numId, 'Read')
+      } catch { /* ok */ }
     }
   }, [currentRun?.agents])
 
-  // Clear agents when run finishes
+  // Clear agents on run end
   useEffect(() => {
     if (!currentRun && agentMapRef.current.size > 0) {
       const office = officeRef.current
@@ -223,10 +204,10 @@ export function OfficeView() {
 
   if (loading) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-bg-primary">
+      <div className="w-full h-full flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-6 h-6 animate-spin text-accent mx-auto mb-2" />
-          <p className="text-xs text-text-muted">Lade Pixel Office...</p>
+          <Loader2 className="w-5 h-5 animate-spin text-accent mx-auto mb-2" />
+          <p className="text-[10px] text-text-muted font-mono">Loading Office...</p>
         </div>
       </div>
     )
@@ -234,14 +215,14 @@ export function OfficeView() {
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-bg-primary">
-        <p className="text-xs text-error">{error}</p>
+      <div className="w-full h-full flex items-center justify-center">
+        <p className="text-[10px] text-danger font-mono">{error}</p>
       </div>
     )
   }
 
   return (
-    <div className="w-full h-full relative overflow-hidden bg-bg-primary">
+    <div className="w-full h-full relative overflow-hidden">
       <canvas
         ref={canvasRef}
         onWheel={handleWheel}
@@ -249,16 +230,9 @@ export function OfficeView() {
         style={{ imageRendering: 'pixelated' }}
       />
       {currentRun && currentRun.agents.length > 0 && (
-        <div className="absolute top-2 left-2 bg-bg-card/80 backdrop-blur-sm border border-border rounded-lg px-3 py-1.5 text-xs">
-          <span className="text-accent font-medium">{currentRun.agents.length}</span>
-          <span className="text-text-muted ml-1">Agenten im Büro</span>
-        </div>
-      )}
-      {!currentRun && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className="text-text-muted text-xs bg-bg-card/60 px-3 py-1.5 rounded-lg">
-            Starte einen Task — Agenten erscheinen hier
-          </p>
+        <div className="absolute top-2 left-2 glass rounded-lg px-2.5 py-1 text-[10px] font-mono">
+          <span className="text-accent">{currentRun.agents.length}</span>
+          <span className="text-text-muted ml-1">agents active</span>
         </div>
       )}
     </div>
