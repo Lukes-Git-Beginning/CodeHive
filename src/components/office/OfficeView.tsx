@@ -227,7 +227,7 @@ export function OfficeView() {
         ref={canvasRef}
         onWheel={handleWheel}
         className="w-full h-full"
-        style={{ imageRendering: 'pixelated' }}
+        style={{ imageRendering: 'pixelated', backgroundColor: '#1a1f3a' }}
       />
       {currentRun && currentRun.agents.length > 0 && (
         <div className="absolute top-2 left-2 glass rounded-lg px-2.5 py-1 text-[10px] font-mono">

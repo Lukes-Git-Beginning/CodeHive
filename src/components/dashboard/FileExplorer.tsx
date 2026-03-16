@@ -18,7 +18,7 @@ function formatSize(bytes: number): string {
 }
 
 function FileTreeNode({ entry, depth = 0 }: { entry: FileEntry; depth?: number }) {
-  const [expanded, setExpanded] = useState(depth < 1)
+  const [expanded, setExpanded] = useState(false)
 
   const ext = entry.name.split('.').pop()?.toLowerCase() || ''
   const extColors: Record<string, string> = {

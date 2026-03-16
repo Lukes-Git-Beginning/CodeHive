@@ -75,9 +75,9 @@ function App() {
   // No project selected → show project selector
   if (!activeProjectId) {
     return (
-      <div className="flex h-screen grid-bg">
+      <div className="flex h-screen w-screen grid-bg overflow-hidden">
         <Sidebar onShowSettings={() => setShowSettings(true)} onAddProject={() => useProjectStore.getState().setActiveProject(null)} />
-        <div className="flex-1 flex flex-col min-w-0 relative z-10">
+        <div className="flex-1 flex flex-col min-w-0 w-0 relative z-10">
           <main className="flex-1"><ProjectSelector onProjectSelect={() => setMainTab('dashboard')} /></main>
           <StatusBar />
         </div>
@@ -93,16 +93,16 @@ function App() {
   ]
 
   return (
-    <div className="flex h-screen grid-bg">
+    <div className="flex h-screen w-screen grid-bg overflow-hidden">
       <Sidebar
         onShowSettings={() => setShowSettings(true)}
         onAddProject={() => useProjectStore.getState().setActiveProject(null)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 relative z-10">
-        <div className="flex flex-1 min-h-0">
+      <div className="flex-1 flex flex-col min-w-0 w-0 relative z-10">
+        <div className="flex flex-1 min-h-0 w-full">
           {/* Main Content Area */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 w-0">
             {/* Main Tab Bar */}
             <div className="flex border-b border-border glass shrink-0">
               {mainTabs.map(({ id, icon: Icon, label }) => (
