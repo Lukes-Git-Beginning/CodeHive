@@ -1,7 +1,18 @@
 import { create } from 'zustand'
 import type { AgentInstance, AgentRun } from '../types/agent'
 
-type OrchestratorPhase = 'idle' | 'planning' | 'executing' | 'verifying' | 'done'
+type OrchestratorPhase = 'idle' | 'planning' | 'awaiting_approval' | 'executing' | 'verifying' | 'done'
+
+export interface PendingPlan {
+  goals: string[]
+  tasks: Array<{
+    id: string
+    name: string
+    complexity: number
+    model: string
+  }>
+  waveCount: number
+}
 
 interface AgentStore {
   currentRun: AgentRun | null
@@ -9,22 +20,29 @@ interface AgentStore {
   phase: OrchestratorPhase
   currentWave: number
   totalWaves: number
+  pendingPlan: PendingPlan | null
+  planApprovalResolver: (() => void) | null
 
   startRun: (run: AgentRun) => void
   finishRun: (summary: string) => void
   setPhase: (phase: OrchestratorPhase) => void
   setWaveInfo: (current: number, total: number) => void
+  setPendingPlan: (plan: PendingPlan, resolver: () => void) => void
+  approvePlan: () => void
+  rejectPlan: () => void
   addAgent: (agent: AgentInstance) => void
   updateAgent: (agentId: string, updates: Partial<AgentInstance>) => void
   appendAgentOutput: (agentId: string, line: string) => void
 }
 
-export const useAgentStore = create<AgentStore>((set) => ({
+export const useAgentStore = create<AgentStore>((set, get) => ({
   currentRun: null,
   runHistory: [],
   phase: 'idle',
   currentWave: 0,
   totalWaves: 0,
+  pendingPlan: null,
+  planApprovalResolver: null,
 
   startRun: (run) => set({ currentRun: run, phase: 'planning' }),
 
@@ -43,20 +61,37 @@ export const useAgentStore = create<AgentStore>((set) => ({
         phase: 'done',
         currentWave: 0,
         totalWaves: 0,
+        pendingPlan: null,
+        planApprovalResolver: null,
       }
     }),
 
   setPhase: (phase) => set({ phase }),
   setWaveInfo: (current, total) => set({ currentWave: current, totalWaves: total }),
 
+  setPendingPlan: (plan, resolver) =>
+    set({ pendingPlan: plan, planApprovalResolver: resolver, phase: 'awaiting_approval' }),
+
+  approvePlan: () => {
+    const { planApprovalResolver } = get()
+    if (planApprovalResolver) planApprovalResolver()
+    set({ pendingPlan: null, planApprovalResolver: null })
+  },
+
+  rejectPlan: () => {
+    set({
+      pendingPlan: null,
+      planApprovalResolver: null,
+      phase: 'idle',
+      currentRun: null,
+    })
+  },
+
   addAgent: (agent) =>
     set((s) => {
       if (!s.currentRun) return s
       return {
-        currentRun: {
-          ...s.currentRun,
-          agents: [...s.currentRun.agents, agent],
-        },
+        currentRun: { ...s.currentRun, agents: [...s.currentRun.agents, agent] },
       }
     }),
 

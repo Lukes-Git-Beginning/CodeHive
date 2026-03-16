@@ -47,12 +47,17 @@ async fn spawn_agent(
     project_path: String,
     system_prompt: String,
     model: Option<String>,
+    permission_mode: Option<String>,
 ) -> Result<String, String> {
+    // Clean up path: trim whitespace, quotes, normalize
+    let clean_path = project_path.trim().trim_matches('"').trim_matches('\'').to_string();
+    log::info!("spawn_agent: clean_path = '{}'", clean_path);
+
     let agent = AgentProcess {
         id: agent_id.clone(),
         role: role.clone(),
         status: "running".to_string(),
-        project_path: project_path.clone(),
+        project_path: clean_path.clone(),
     };
 
     {
@@ -65,13 +70,14 @@ async fn spawn_agent(
         status: "running".to_string(),
     });
 
-    // Validate and normalize project path
-    let project_dir = std::path::Path::new(&project_path);
-    if !project_dir.exists() || !project_dir.is_dir() {
-        return Err(format!("Project path does not exist or is not a directory: {}", project_path));
+    // Validate project path
+    let project_dir = std::path::Path::new(&clean_path);
+    if !project_dir.exists() {
+        return Err(format!("Path does not exist: '{}'", clean_path));
     }
-    let canonical_path = project_dir.canonicalize()
-        .map_err(|e| format!("Failed to resolve path '{}': {}", project_path, e))?;
+    if !project_dir.is_dir() {
+        return Err(format!("Path is not a directory: '{}'", clean_path));
+    }
 
     let mut cmd = Command::new("claude");
     cmd.arg("-p")
@@ -88,7 +94,12 @@ async fn spawn_agent(
         cmd.arg("--model").arg(model_id);
     }
 
-    cmd.current_dir(&canonical_path)
+    // Permission mode for auto-accept
+    if let Some(ref perm) = permission_mode {
+        cmd.arg("--permission-mode").arg(perm);
+    }
+
+    cmd.current_dir(&clean_path)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 

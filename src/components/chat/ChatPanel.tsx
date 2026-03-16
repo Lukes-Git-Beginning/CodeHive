@@ -1,13 +1,81 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, Cpu, AlertCircle, Zap } from 'lucide-react'
+import { Send, Bot, User, Cpu, AlertCircle, Zap, CheckCircle, X, FileCode } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import { useProjectStore } from '../../stores/projectStore'
+import { useAgentStore } from '../../stores/agentStore'
 import { orchestrate } from '../../services/orchestrator'
 import type { ChatMessage } from '../../types/agent'
+
+function PlanApprovalCard() {
+  const { pendingPlan, approvePlan, rejectPlan } = useAgentStore()
+  if (!pendingPlan) return null
+
+  const modelColors: Record<string, string> = {
+    opus: 'text-amber-400',
+    sonnet: 'text-blue-400',
+    haiku: 'text-green-400',
+  }
+
+  return (
+    <div className="bg-bg-card border border-accent/30 rounded-lg p-4 mx-4 mb-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Zap className="w-4 h-4 text-accent" />
+        <span className="text-sm font-semibold text-accent">Execution Plan</span>
+        <span className="text-xs text-text-muted">
+          {pendingPlan.tasks.length} Tasks in {pendingPlan.waveCount} Wellen
+        </span>
+      </div>
+
+      {pendingPlan.goals.length > 0 && (
+        <div className="mb-3">
+          <span className="text-xs text-text-muted font-semibold">Ziele:</span>
+          {pendingPlan.goals.map((g, i) => (
+            <p key={i} className="text-xs text-text-secondary ml-2">- {g}</p>
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-1.5 mb-4">
+        {pendingPlan.tasks.map((task) => (
+          <div key={task.id} className="flex items-center gap-2 text-xs">
+            <FileCode className="w-3 h-3 text-text-muted shrink-0" />
+            <span className="text-text-primary flex-1">{task.name}</span>
+            <span className={`${modelColors[task.model] || 'text-text-muted'} font-mono`}>
+              {task.model}
+            </span>
+            <span className="text-text-muted w-8 text-right">{task.complexity}/10</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={approvePlan}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-success/20 text-success
+                     border border-success/30 rounded-lg py-2 text-sm font-medium
+                     hover:bg-success/30 transition-colors"
+        >
+          <CheckCircle className="w-4 h-4" />
+          Ausführen
+        </button>
+        <button
+          onClick={rejectPlan}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-error/20 text-error
+                     border border-error/30 rounded-lg py-2 text-sm font-medium
+                     hover:bg-error/30 transition-colors"
+        >
+          <X className="w-4 h-4" />
+          Abbrechen
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export function ChatPanel() {
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const pendingPlan = useAgentStore((s) => s.pendingPlan)
   const { messages, isProcessing, addMessage, setProcessing } = useChatStore()
   const activeProject = useProjectStore((s) => s.getActiveProject())
 
@@ -162,7 +230,8 @@ export function ChatPanel() {
             </div>
           ))
         )}
-        {isProcessing && (
+        {pendingPlan && <PlanApprovalCard />}
+        {isProcessing && !pendingPlan && (
           <div className="flex gap-3">
             <Zap className="w-5 h-5 text-success shrink-0 mt-1" />
             <div className="bg-bg-card border border-border rounded-lg px-4 py-3">

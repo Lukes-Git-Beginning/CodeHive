@@ -4,6 +4,7 @@ import type { AgentInstance, AgentRun, ChatMessage } from '../types/agent'
 import type { Project } from '../types/project'
 import { useAgentStore } from '../stores/agentStore'
 import { extractLearnings, getRelevantContext } from './knowledge'
+import { getSetting } from './persistence'
 import { useChatStore } from '../stores/chatStore'
 
 // ── Types ──
@@ -219,13 +220,18 @@ async function spawnAndWait(
 
   const completionPromise = waitForAgent(agentId)
 
+  // Get permission mode from settings
+  const autoAccept = await getSetting('auto_accept')
+  const permissionMode = autoAccept === 'true' ? 'acceptEdits' : undefined
+
   await invoke('spawn_agent', {
     agentId,
     role,
     prompt,
-    projectPath,
+    projectPath: projectPath.trim(),
     systemPrompt,
     model: getModelFlag(model),
+    permissionMode,
   })
 
   await completionPromise
@@ -456,6 +462,33 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
   try {
     // Phase 1: Plan
     const plan = await planTask(prompt, project)
+
+    // Plan Mode: Show plan and wait for approval
+    const planModeEnabled = (await getSetting('plan_mode')) !== 'false'
+    if (planModeEnabled && plan.tasks.length > 0) {
+      // Show plan to user and wait for approval
+      await new Promise<void>((resolve) => {
+        useAgentStore.getState().setPendingPlan(
+          {
+            goals: plan.goals,
+            tasks: plan.tasks.map((t) => ({
+              id: t.id,
+              name: t.name,
+              complexity: t.complexity,
+              model: t.model,
+            })),
+            waveCount: plan.waves.length,
+          },
+          resolve
+        )
+      })
+
+      // Check if plan was rejected (phase will be 'idle')
+      if (useAgentStore.getState().phase === 'idle') {
+        chatStore.setProcessing(false)
+        return
+      }
+    }
 
     // Phase 2: Execute in waves
     await executeWaves(plan, project)
