@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Send, User, Cpu, AlertCircle, Zap, CheckCircle, X, FileCode } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import { useProjectStore } from '../../stores/projectStore'
@@ -221,7 +223,17 @@ export function ChatPanel() {
                         {new Date(msg.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <div className="text-[13px] text-text-primary leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+                    <div className="text-[13px] text-text-primary leading-relaxed prose prose-invert prose-sm max-w-none
+                                  prose-headings:text-accent prose-headings:font-hud prose-headings:text-xs prose-headings:mt-3 prose-headings:mb-1
+                                  prose-strong:text-text-primary prose-code:text-cyan prose-code:text-[11px]
+                                  prose-table:text-[11px] prose-th:text-accent prose-th:font-hud prose-th:text-[10px]
+                                  prose-td:py-1 prose-th:py-1 prose-td:px-2 prose-th:px-2
+                                  prose-td:border-border prose-th:border-border
+                                  prose-pre:bg-bg-deep/50 prose-pre:border prose-pre:border-border prose-pre:rounded-lg
+                                  prose-a:text-cyan prose-a:no-underline hover:prose-a:underline
+                                  prose-li:text-text-secondary prose-p:my-1">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    </div>
                   </div>
                   {isUser && (
                     <div className={`w-7 h-7 rounded-lg ${style.bg} border ${style.border} flex items-center justify-center shrink-0 mt-0.5`}>

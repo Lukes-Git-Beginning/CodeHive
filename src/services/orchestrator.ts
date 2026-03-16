@@ -146,15 +146,8 @@ function setupEventListeners() {
                 }
               }
             } else if (parsed.type === 'result' && parsed.result) {
+              // Only append to agent output — chat messages are posted by orchestrator flow
               agentStore.appendAgentOutput(agent_id, parsed.result)
-              const agent = agentStore.currentRun?.agents.find((a) => a.id === agent_id)
-              chatStore.addMessage({
-                id: crypto.randomUUID(),
-                role: 'agent',
-                agentRole: agent?.role,
-                content: parsed.result,
-                timestamp: new Date().toISOString(),
-              })
             }
           } catch {
             if (line.trim() && !line.startsWith('[stderr]')) {

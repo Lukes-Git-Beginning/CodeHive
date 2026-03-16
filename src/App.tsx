@@ -14,6 +14,8 @@ import { useAgentStore } from './stores/agentStore'
 import { ScanLine } from './components/ui/ScanLine'
 import { Monitor, Gamepad2, MessageSquare, LayoutDashboard, Map, AlertTriangle } from 'lucide-react'
 
+type MainTab = 'dashboard' | 'chat' | 'office' | 'roadmap'
+
 // ── Error Boundary ──
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null }
@@ -39,12 +41,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
 }
 
-type MainTab = 'chat' | 'dashboard' | 'roadmap'
-type RightPanel = 'monitor' | 'office'
-
 function App() {
   const [mainTab, setMainTab] = useState<MainTab>('dashboard')
-  const [rightPanel, setRightPanel] = useState<RightPanel>('monitor')
   const [showSettings, setShowSettings] = useState(false)
   const activeProjectId = useProjectStore((s) => s.activeProjectId)
   const initialized = useProjectStore((s) => s.initialized)
@@ -90,6 +88,7 @@ function App() {
   const mainTabs: { id: MainTab; icon: typeof MessageSquare; label: string }[] = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'chat', icon: MessageSquare, label: 'Chat' },
+    { id: 'office', icon: Gamepad2, label: 'Office' },
     { id: 'roadmap', icon: Map, label: 'Roadmap' },
   ]
 
@@ -130,36 +129,22 @@ function App() {
               <ErrorBoundary>
                 {mainTab === 'chat' && <ChatPanel />}
                 {mainTab === 'dashboard' && <ProjectDashboard />}
+                {mainTab === 'office' && <OfficeView />}
                 {mainTab === 'roadmap' && <RoadmapView />}
               </ErrorBoundary>
             </div>
           </div>
 
-          {/* Right Panel */}
+          {/* Right Panel: Agent Monitor */}
           <div className="w-72 shrink-0 flex flex-col glass-elevated border-l border-border relative">
             {isRunning && <ScanLine duration={4} />}
-            <div className="flex border-b border-border">
-              {[
-                { id: 'monitor' as RightPanel, icon: Monitor, label: 'Monitor' },
-                { id: 'office' as RightPanel, icon: Gamepad2, label: 'Office' },
-              ].map(({ id, icon: Icon, label }) => (
-                <button
-                  key={id}
-                  onClick={() => setRightPanel(id)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium transition-all ${
-                    rightPanel === id
-                      ? 'text-accent border-b border-accent bg-accent/5'
-                      : 'text-text-muted hover:text-text-secondary hover:bg-bg-hover'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {label}
-                </button>
-              ))}
+            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
+              <Monitor className="w-3.5 h-3.5 text-accent" />
+              <span className="font-hud text-[10px] text-accent">Agent Monitor</span>
             </div>
             <div className="flex-1 min-h-0">
               <ErrorBoundary>
-                {rightPanel === 'monitor' ? <AgentMonitor /> : <OfficeView />}
+                <AgentMonitor />
               </ErrorBoundary>
             </div>
           </div>
