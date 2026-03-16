@@ -179,6 +179,83 @@ async fn check_claude_cli() -> Result<String, String> {
         .map_err(|e| format!("Invalid output: {}", e))
 }
 
+// ── File Explorer ──
+
+#[derive(Debug, Clone, Serialize)]
+struct FileEntry {
+    name: String,
+    path: String,
+    is_dir: bool,
+    size: u64,
+    children: Vec<FileEntry>,
+}
+
+const IGNORED_DIRS: &[&str] = &[
+    ".git", "node_modules", "__pycache__", "target", "dist", ".venv",
+    "venv", ".next", ".nuxt", "build", ".svelte-kit", ".turbo",
+    "coverage", ".cache", ".parcel-cache",
+];
+
+fn scan_directory(dir: &std::path::Path, depth: u32, max_depth: u32) -> Vec<FileEntry> {
+    if depth >= max_depth {
+        return vec![];
+    }
+
+    let mut entries = Vec::new();
+    let Ok(read_dir) = std::fs::read_dir(dir) else { return entries };
+
+    for entry in read_dir.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+
+        // Skip hidden files (except specific ones) and ignored dirs
+        if name.starts_with('.') && name != ".env" && name != ".gitignore" {
+            continue;
+        }
+
+        let path = entry.path();
+        let is_dir = path.is_dir();
+
+        if is_dir && IGNORED_DIRS.contains(&name.as_str()) {
+            continue;
+        }
+
+        let size = if is_dir { 0 } else {
+            entry.metadata().map(|m| m.len()).unwrap_or(0)
+        };
+
+        let children = if is_dir {
+            scan_directory(&path, depth + 1, max_depth)
+        } else {
+            vec![]
+        };
+
+        entries.push(FileEntry {
+            name,
+            path: path.to_string_lossy().to_string(),
+            is_dir,
+            size,
+            children,
+        });
+    }
+
+    // Sort: directories first, then alphabetically
+    entries.sort_by(|a, b| {
+        b.is_dir.cmp(&a.is_dir).then(a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+    });
+
+    entries
+}
+
+#[tauri::command]
+fn list_project_files(path: String, max_depth: Option<u32>) -> Result<Vec<FileEntry>, String> {
+    let clean = path.trim().trim_matches('"').to_string();
+    let dir = std::path::Path::new(&clean);
+    if !dir.exists() || !dir.is_dir() {
+        return Err(format!("Path does not exist: {}", path));
+    }
+    Ok(scan_directory(dir, 0, max_depth.unwrap_or(3)))
+}
+
 #[tauri::command]
 async fn detect_tech_stack(path: String) -> Result<Vec<String>, String> {
     let path = std::path::Path::new(&path);
@@ -336,6 +413,7 @@ pub fn run() {
             get_agents,
             check_claude_cli,
             detect_tech_stack,
+            list_project_files,
             // Project CRUD
             db_list_projects,
             db_save_project,
