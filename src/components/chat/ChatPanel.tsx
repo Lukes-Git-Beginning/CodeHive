@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, Cpu, AlertCircle, Zap, CheckCircle, X, FileCode } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Send, User, Cpu, AlertCircle, Zap, CheckCircle, X, FileCode } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import { useProjectStore } from '../../stores/projectStore'
 import { useAgentStore } from '../../stores/agentStore'
@@ -11,64 +12,88 @@ function PlanApprovalCard() {
   if (!pendingPlan) return null
 
   const modelColors: Record<string, string> = {
-    opus: 'text-amber-400',
-    sonnet: 'text-blue-400',
-    haiku: 'text-green-400',
+    opus: 'text-violet',
+    sonnet: 'text-cyan',
+    haiku: 'text-accent',
   }
 
   return (
-    <div className="bg-bg-card border border-accent/30 rounded-lg p-4 mx-4 mb-4">
-      <div className="flex items-center gap-2 mb-3">
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      className="mx-4 mb-4 glass-accent rounded-xl p-5"
+    >
+      <div className="flex items-center gap-2 mb-4">
         <Zap className="w-4 h-4 text-accent" />
-        <span className="text-sm font-semibold text-accent">Execution Plan</span>
-        <span className="text-xs text-text-muted">
-          {pendingPlan.tasks.length} Tasks in {pendingPlan.waveCount} Wellen
+        <span className="font-hud text-xs text-accent">Execution Plan</span>
+        <span className="text-[11px] text-text-muted ml-auto font-mono">
+          {pendingPlan.tasks.length} tasks · {pendingPlan.waveCount} waves
         </span>
       </div>
 
       {pendingPlan.goals.length > 0 && (
-        <div className="mb-3">
-          <span className="text-xs text-text-muted font-semibold">Ziele:</span>
+        <div className="mb-4">
           {pendingPlan.goals.map((g, i) => (
-            <p key={i} className="text-xs text-text-secondary ml-2">- {g}</p>
+            <p key={i} className="text-xs text-text-secondary">
+              <span className="text-accent mr-2">{'>'}</span>{g}
+            </p>
           ))}
         </div>
       )}
 
-      <div className="space-y-1.5 mb-4">
-        {pendingPlan.tasks.map((task) => (
-          <div key={task.id} className="flex items-center gap-2 text-xs">
+      <div className="space-y-1.5 mb-5">
+        {pendingPlan.tasks.map((task, i) => (
+          <motion.div
+            key={task.id}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.08 }}
+            className="flex items-center gap-2 text-xs glass rounded-lg px-3 py-2"
+          >
             <FileCode className="w-3 h-3 text-text-muted shrink-0" />
-            <span className="text-text-primary flex-1">{task.name}</span>
-            <span className={`${modelColors[task.model] || 'text-text-muted'} font-mono`}>
+            <span className="text-text-primary flex-1 truncate">{task.name}</span>
+            <span className={`font-mono text-[10px] ${modelColors[task.model] || 'text-text-muted'}`}>
               {task.model}
             </span>
-            <span className="text-text-muted w-8 text-right">{task.complexity}/10</span>
-          </div>
+            <div className="flex gap-0.5">
+              {Array.from({ length: 10 }, (_, j) => (
+                <div
+                  key={j}
+                  className={`w-1 h-2.5 rounded-full ${
+                    j < task.complexity ? 'bg-accent/60' : 'bg-white/5'
+                  }`}
+                />
+              ))}
+            </div>
+          </motion.div>
         ))}
       </div>
 
-      <div className="flex gap-2">
-        <button
+      <div className="flex gap-3">
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={approvePlan}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-success/20 text-success
-                     border border-success/30 rounded-lg py-2 text-sm font-medium
-                     hover:bg-success/30 transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 bg-accent/15 border border-accent/30
+                     text-accent rounded-lg py-2.5 text-xs font-hud tracking-wider
+                     hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,255,136,0.3)] transition-all"
         >
           <CheckCircle className="w-4 h-4" />
-          Ausführen
-        </button>
-        <button
+          Execute
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           onClick={rejectPlan}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-error/20 text-error
-                     border border-error/30 rounded-lg py-2 text-sm font-medium
-                     hover:bg-error/30 transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 bg-danger-dim border border-danger/30
+                     text-danger rounded-lg py-2.5 text-xs font-hud tracking-wider
+                     hover:bg-danger/25 hover:shadow-[0_0_20px_rgba(255,51,102,0.3)] transition-all"
         >
           <X className="w-4 h-4" />
-          Abbrechen
-        </button>
+          Abort
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -105,176 +130,157 @@ export function ChatPanel() {
       addMessage({
         id: crypto.randomUUID(),
         role: 'system',
-        content: `Fehler beim Starten der Agenten: ${err}`,
+        content: `Fehler: ${err}`,
         timestamp: new Date().toISOString(),
       })
       setProcessing(false)
     }
   }
 
-  const getMessageIcon = (msg: ChatMessage) => {
-    switch (msg.role) {
-      case 'user':
-        return <User className="w-5 h-5 text-accent" />
-      case 'orchestrator':
-        return <Zap className="w-5 h-5 text-success" />
-      case 'agent':
-        return <Cpu className="w-5 h-5 text-blue-400" />
-      case 'system':
-        return <AlertCircle className="w-5 h-5 text-warning" />
-    }
+  const roleStyles: Record<string, { bg: string; border: string; icon: typeof Cpu; iconColor: string }> = {
+    user: { bg: 'bg-accent/8', border: 'border-accent/20', icon: User, iconColor: 'text-accent' },
+    orchestrator: { bg: 'bg-cyan/8', border: 'border-cyan/20', icon: Zap, iconColor: 'text-cyan' },
+    agent: { bg: 'bg-violet/8', border: 'border-violet/20', icon: Cpu, iconColor: 'text-violet' },
+    system: { bg: 'bg-white/3', border: 'border-white/5', icon: AlertCircle, iconColor: 'text-warning' },
   }
 
-  const getMessageLabel = (msg: ChatMessage) => {
-    switch (msg.role) {
-      case 'user':
-        return 'Du'
-      case 'orchestrator':
-        return 'Orchestrator'
-      case 'agent':
-        return msg.agentRole
-          ? msg.agentRole.charAt(0).toUpperCase() + msg.agentRole.slice(1)
-          : 'Agent'
-      case 'system':
-        return 'System'
-    }
-  }
-
-  const getRoleBadgeColor = (msg: ChatMessage) => {
-    if (msg.role === 'agent') {
-      const colors: Record<string, string> = {
-        frontend: 'bg-blue-500/20 text-blue-400',
-        backend: 'bg-green-500/20 text-green-400',
-        testing: 'bg-purple-500/20 text-purple-400',
-        architect: 'bg-orange-500/20 text-orange-400',
-        devops: 'bg-cyan-500/20 text-cyan-400',
-        security: 'bg-red-500/20 text-red-400',
-        uiux: 'bg-pink-500/20 text-pink-400',
-      }
-      return colors[msg.agentRole || ''] || 'bg-gray-500/20 text-gray-400'
-    }
-    return ''
+  const getLabel = (msg: ChatMessage) => {
+    if (msg.role === 'user') return 'You'
+    if (msg.role === 'orchestrator') return 'Orchestrator'
+    if (msg.role === 'agent') return msg.agentRole || 'Agent'
+    return 'System'
   }
 
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-muted">
-            <Bot className="w-16 h-16 mb-4 opacity-30" />
-            <h3 className="text-lg font-medium mb-1">
-              {activeProject ? `Projekt: ${activeProject.name}` : 'Kein Projekt ausgewählt'}
-            </h3>
-            <p className="text-sm text-center max-w-md mb-6">
-              {activeProject
-                ? 'Beschreibe was du bauen oder ändern möchtest. Der Orchestrator analysiert die Aufgabe und spawnt die passenden Agenten.'
-                : 'Wähle zuerst ein Projekt in der Sidebar aus oder füge ein neues hinzu.'}
-            </p>
-            {activeProject && (
-              <div className="grid grid-cols-2 gap-2 max-w-sm">
-                {[
-                  'Füge ein neues Feature hinzu',
-                  'Finde und behebe den Bug in...',
-                  'Schreibe Tests für...',
-                  'Refactore die...',
-                ].map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    onClick={() => setInput(suggestion)}
-                    className="text-xs bg-bg-card border border-border rounded-lg px-3 py-2
-                               hover:border-accent/50 hover:text-accent transition-colors text-left"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
+          <div className="flex flex-col items-center justify-center h-full">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center"
+            >
+              <div className="w-16 h-16 rounded-full glass-accent flex items-center justify-center mx-auto mb-4">
+                <Zap className="w-7 h-7 text-accent" />
               </div>
-            )}
+              <h3 className="font-hud text-sm text-accent text-glow-green mb-2">
+                {activeProject ? activeProject.name : 'No Project Selected'}
+              </h3>
+              <p className="text-xs text-text-muted max-w-sm mb-6">
+                {activeProject
+                  ? 'Beschreibe deine Aufgabe. Der Orchestrator analysiert, plant und delegiert an spezialisierte Agenten.'
+                  : 'Wähle ein Projekt in der Sidebar.'}
+              </p>
+              {activeProject && (
+                <div className="flex flex-wrap gap-2 justify-center max-w-md">
+                  {[
+                    'Neues Feature hinzufügen',
+                    'Bug finden und fixen',
+                    'Tests schreiben',
+                    'Code refactoren',
+                  ].map((s) => (
+                    <motion.button
+                      key={s}
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setInput(s)}
+                      className="glass neon-hover rounded-lg px-3 py-1.5 text-[11px] text-text-secondary"
+                    >
+                      {s}
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+            </motion.div>
           </div>
         ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}
-            >
-              {msg.role !== 'user' && (
-                <div className="shrink-0 mt-1">{getMessageIcon(msg)}</div>
-              )}
-              <div
-                className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                  msg.role === 'user'
-                    ? 'bg-accent/20 border border-accent/30'
-                    : 'bg-bg-card border border-border'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  {msg.role === 'agent' && msg.agentRole && (
-                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${getRoleBadgeColor(msg)}`}>
-                      {getMessageLabel(msg)}
-                    </span>
+          <AnimatePresence>
+            {messages.map((msg) => {
+              const style = roleStyles[msg.role] || roleStyles.system
+              const Icon = style.icon
+              const isUser = msg.role === 'user'
+
+              return (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex gap-3 ${isUser ? 'justify-end' : ''}`}
+                >
+                  {!isUser && (
+                    <div className={`w-7 h-7 rounded-lg ${style.bg} border ${style.border} flex items-center justify-center shrink-0 mt-0.5`}>
+                      <Icon className={`w-3.5 h-3.5 ${style.iconColor}`} />
+                    </div>
                   )}
-                  {msg.role !== 'agent' && (
-                    <span className="text-xs font-semibold text-text-muted">
-                      {getMessageLabel(msg)}
-                    </span>
+                  <div className={`max-w-[75%] rounded-xl px-4 py-3 ${style.bg} border ${style.border}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`font-hud text-[10px] ${style.iconColor}`}>{getLabel(msg)}</span>
+                      <span className="text-[10px] text-text-muted font-mono">
+                        {new Date(msg.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="text-[13px] text-text-primary leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+                  </div>
+                  {isUser && (
+                    <div className={`w-7 h-7 rounded-lg ${style.bg} border ${style.border} flex items-center justify-center shrink-0 mt-0.5`}>
+                      <Icon className={`w-3.5 h-3.5 ${style.iconColor}`} />
+                    </div>
                   )}
-                  <span className="text-xs text-text-muted">
-                    {new Date(msg.timestamp).toLocaleTimeString('de-DE')}
-                  </span>
-                </div>
-                <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
-              </div>
-              {msg.role === 'user' && (
-                <div className="shrink-0 mt-1">{getMessageIcon(msg)}</div>
-              )}
-            </div>
-          ))
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
         )}
         {pendingPlan && <PlanApprovalCard />}
         {isProcessing && !pendingPlan && (
-          <div className="flex gap-3">
-            <Zap className="w-5 h-5 text-success shrink-0 mt-1" />
-            <div className="bg-bg-card border border-border rounded-lg px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-                <span className="text-xs text-text-muted">Agenten arbeiten...</span>
-              </div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex gap-3"
+          >
+            <div className="w-7 h-7 rounded-lg bg-cyan/8 border border-cyan/20 flex items-center justify-center shrink-0">
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              >
+                <Zap className="w-3.5 h-3.5 text-cyan" />
+              </motion.div>
             </div>
-          </div>
+            <div className="glass rounded-xl px-4 py-3 flex items-center gap-2">
+              <div className="h-px w-12 bg-gradient-to-r from-transparent via-accent to-transparent animate-pulse" />
+              <span className="text-[11px] text-text-muted font-mono">Processing...</span>
+            </div>
+          </motion.div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="border-t border-border p-4">
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={
-              activeProject
-                ? 'Beschreibe deine Aufgabe...'
-                : 'Wähle zuerst ein Projekt aus'
-            }
+            placeholder={activeProject ? 'Enter command...' : 'Select a project first'}
             disabled={!activeProject || isProcessing}
-            className="flex-1 bg-bg-card border border-border rounded-lg px-4 py-3 text-sm
-                       text-text-primary placeholder-text-muted
-                       focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50
-                       disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 glass rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted
+                       focus:outline-none focus:border-accent/40 focus:shadow-[0_0_15px_rgba(0,255,136,0.15)]
+                       disabled:opacity-30 transition-all font-mono"
           />
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             type="submit"
             disabled={!input.trim() || !activeProject || isProcessing}
-            className="bg-accent hover:bg-accent-hover text-bg-primary font-medium px-4 py-3
-                       rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-accent/15 border border-accent/30 text-accent px-4 py-3 rounded-xl
+                       hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,255,136,0.3)]
+                       disabled:opacity-30 disabled:hover:shadow-none transition-all"
           >
             <Send className="w-5 h-5" />
-          </button>
+          </motion.button>
         </div>
       </form>
     </div>
