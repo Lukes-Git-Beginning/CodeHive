@@ -53,7 +53,8 @@ export function OfficeView() {
   const panRef = useRef({ x: 0, y: 0 })
   const zoomRef = useRef(3)
   const stopRef = useRef<(() => void) | null>(null)
-  const agentMapRef = useRef(new Map<string, boolean>())
+  const agentMapRef = useRef(new Map<string, number>()) // string agentId → numeric office id
+  const nextIdRef = useRef(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -120,7 +121,6 @@ export function OfficeView() {
           zoomRef.current,
           panRef.current.x,
           panRef.current.y,
-          null, null, false, null, null, null,
         )
       },
     })
@@ -171,23 +171,25 @@ export function OfficeView() {
     if (!office || !currentRun) return
 
     for (const agent of currentRun.agents) {
-      if (!agentMapRef.current.has(agent.id)) {
+      let numId = agentMapRef.current.get(agent.id)
+      if (numId === undefined) {
+        numId = nextIdRef.current++
         const palette = ROLE_PALETTE[agent.role] ?? 0
         const hueShift = (palette * 60) % 360
         try {
-          office.addAgent(agent.id, palette, hueShift)
-          agentMapRef.current.set(agent.id, true)
+          office.addAgent(numId, palette, hueShift)
+          agentMapRef.current.set(agent.id, numId)
         } catch { /* might already exist */ }
       }
 
       // Update activity
       try {
         const isActive = agent.status === 'working' || agent.status === 'thinking'
-        office.setAgentActive(agent.id, isActive)
+        office.setAgentActive(numId, isActive)
         if (agent.status === 'working') {
-          office.setAgentTool(agent.id, 'Edit')
+          office.setAgentTool(numId, 'Edit')
         } else if (agent.status === 'thinking') {
-          office.setAgentTool(agent.id, 'Read')
+          office.setAgentTool(numId, 'Read')
         }
       } catch { /* character might not exist */ }
     }
@@ -198,8 +200,8 @@ export function OfficeView() {
     if (!currentRun && agentMapRef.current.size > 0) {
       const office = officeRef.current
       if (office) {
-        for (const id of agentMapRef.current.keys()) {
-          try { office.removeAgent(id) } catch { /* ok */ }
+        for (const numId of agentMapRef.current.values()) {
+          try { office.removeAgent(numId) } catch { /* ok */ }
         }
       }
       agentMapRef.current.clear()

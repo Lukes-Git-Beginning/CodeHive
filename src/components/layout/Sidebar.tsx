@@ -1,4 +1,4 @@
-import { FolderOpen, Plus, Map, Settings, Hexagon, Bot } from 'lucide-react'
+import { FolderOpen, Plus, Map, Settings, Hexagon } from 'lucide-react'
 import { useProjectStore } from '../../stores/projectStore'
 
 type View = 'projects' | 'roadmap' | 'settings'

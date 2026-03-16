@@ -10,7 +10,7 @@ const columns = [
 ] as const
 
 export function RoadmapView() {
-  const { tasks, activeProjectId, addTask, updateTask, removeTask } = useProjectStore()
+  const { tasks, activeProjectId, addTask, updateTask } = useProjectStore()
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [addingToColumn, setAddingToColumn] = useState<string | null>(null)
 

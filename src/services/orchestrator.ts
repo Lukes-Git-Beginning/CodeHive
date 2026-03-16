@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import type { AgentInstance, AgentRun, ChatMessage } from '../types/agent'
+import type { AgentInstance, AgentRun } from '../types/agent'
 import type { Project } from '../types/project'
 import { useAgentStore } from '../stores/agentStore'
 import { extractLearnings, getRelevantContext } from './knowledge'

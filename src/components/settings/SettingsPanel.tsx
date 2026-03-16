@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Settings, Key, Bot, Palette, Shield, ClipboardCheck } from 'lucide-react'
+import { Settings, Key, Bot, Palette, ClipboardCheck } from 'lucide-react'
 import { getSetting, setSetting } from '../../services/persistence'
 
 function Toggle({

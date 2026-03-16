@@ -6,6 +6,7 @@ import { OfficeView } from './components/office/OfficeView'
 import { ProjectSelector } from './components/projects/ProjectSelector'
 import { RoadmapView } from './components/roadmap/RoadmapView'
 import { SettingsPanel } from './components/settings/SettingsPanel'
+import { StatusBar } from './components/layout/StatusBar'
 import { useProjectStore } from './stores/projectStore'
 import { Monitor, Gamepad2 } from 'lucide-react'
 
@@ -98,9 +99,12 @@ function App() {
           useProjectStore.getState().setActiveProject(null)
         }}
       />
-      <main className="flex-1 flex flex-col min-w-0 bg-bg-primary">
-        {renderMainContent()}
-      </main>
+      <div className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 flex flex-col min-w-0 bg-bg-primary">
+          {renderMainContent()}
+        </main>
+        <StatusBar />
+      </div>
     </div>
   )
 }

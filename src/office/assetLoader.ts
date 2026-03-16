@@ -7,7 +7,7 @@ import { buildDynamicCatalog } from './layout/furnitureCatalog'
 const CHAR_FRAME_W = 16
 const CHAR_FRAME_H = 32
 const CHAR_COLS = 7
-const CHAR_ROWS = 3 // DOWN, UP, RIGHT (LEFT = flipped RIGHT)
+// Character rows: DOWN, UP, RIGHT (LEFT = flipped RIGHT)
 
 // Floor tiles are 16×16px
 const FLOOR_TILE_SIZE = 16

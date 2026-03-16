@@ -21,9 +21,10 @@ const roleConfig: Record<string, { label: string; color: string }> = {
   uiux: { label: 'UI/UX', color: 'bg-pink-500/20 text-pink-400' },
 }
 
-const phaseConfig = {
+const phaseConfig: Record<string, { label: string; icon: typeof Bot; color: string }> = {
   idle: { label: 'Bereit', icon: Clock, color: 'text-text-muted' },
   planning: { label: 'Planung (Opus 1M)', icon: Search, color: 'text-blue-400' },
+  awaiting_approval: { label: 'Plan prüfen', icon: Clock, color: 'text-amber-400' },
   executing: { label: 'Ausführung', icon: Zap, color: 'text-accent' },
   verifying: { label: 'Verifikation (Opus 1M)', icon: Shield, color: 'text-purple-400' },
   done: { label: 'Abgeschlossen', icon: CheckCircle, color: 'text-success' },
