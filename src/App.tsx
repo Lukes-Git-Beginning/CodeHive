@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sidebar } from './components/layout/Sidebar'
 import { ChatPanel } from './components/chat/ChatPanel'
 import { AgentMonitor } from './components/agents/AgentMonitor'
@@ -12,6 +12,23 @@ type View = 'projects' | 'roadmap' | 'settings'
 function App() {
   const [currentView, setCurrentView] = useState<View>('projects')
   const activeProjectId = useProjectStore((s) => s.activeProjectId)
+  const initialized = useProjectStore((s) => s.initialized)
+  const initialize = useProjectStore((s) => s.initialize)
+
+  useEffect(() => {
+    initialize()
+  }, [initialize])
+
+  if (!initialized) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-bg-primary">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-text-muted">CodeHive wird geladen...</p>
+        </div>
+      </div>
+    )
+  }
 
   const renderMainContent = () => {
     if (currentView === 'roadmap') return <RoadmapView />

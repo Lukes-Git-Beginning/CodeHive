@@ -1,8 +1,11 @@
+mod db;
+
+use db::{Database, DbProject, DbTask, DbAgentRun, DbKnowledge};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::process::Stdio;
 use std::sync::Arc;
-use tauri::{Emitter, State};
+use tauri::{Emitter, Manager, State};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::Mutex;
@@ -15,26 +18,25 @@ pub struct AgentProcess {
     pub project_path: String,
 }
 
-#[derive(Default)]
 pub struct AppState {
     pub running_agents: Arc<Mutex<HashMap<String, AgentProcess>>>,
+    pub db: Database,
 }
 
-/// Event payload sent to frontend when agent produces output
 #[derive(Clone, Serialize)]
 struct AgentOutputEvent {
     agent_id: String,
     line: String,
 }
 
-/// Event payload sent when agent status changes
 #[derive(Clone, Serialize)]
 struct AgentStatusEvent {
     agent_id: String,
     status: String,
 }
 
-/// Spawn a Claude agent via CLI headless mode
+// ── Agent Commands ──
+
 #[tauri::command]
 async fn spawn_agent(
     app: tauri::AppHandle,
@@ -44,6 +46,7 @@ async fn spawn_agent(
     prompt: String,
     project_path: String,
     system_prompt: String,
+    model: Option<String>,
 ) -> Result<String, String> {
     let agent = AgentProcess {
         id: agent_id.clone(),
@@ -52,19 +55,16 @@ async fn spawn_agent(
         project_path: project_path.clone(),
     };
 
-    // Register agent
     {
         let mut agents = state.running_agents.lock().await;
         agents.insert(agent_id.clone(), agent);
     }
 
-    // Emit status
     let _ = app.emit("agent-status", AgentStatusEvent {
         agent_id: agent_id.clone(),
         status: "running".to_string(),
     });
 
-    // Build claude CLI command
     let mut cmd = Command::new("claude");
     cmd.arg("-p")
         .arg(&prompt)
@@ -76,6 +76,10 @@ async fn spawn_agent(
         cmd.arg("--system-prompt").arg(&system_prompt);
     }
 
+    if let Some(ref model_id) = model {
+        cmd.arg("--model").arg(model_id);
+    }
+
     cmd.current_dir(&project_path)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -85,7 +89,6 @@ async fn spawn_agent(
     let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
     let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
 
-    // Stream stdout to frontend
     let app_stdout = app.clone();
     let aid_stdout = agent_id.clone();
     tokio::spawn(async move {
@@ -99,7 +102,6 @@ async fn spawn_agent(
         }
     });
 
-    // Stream stderr
     let app_stderr = app.clone();
     let aid_stderr = agent_id.clone();
     tokio::spawn(async move {
@@ -113,7 +115,6 @@ async fn spawn_agent(
         }
     });
 
-    // Wait for completion in background
     let app_done = app.clone();
     let aid_done = agent_id.clone();
     let state_clone = state.running_agents.clone();
@@ -125,7 +126,6 @@ async fn spawn_agent(
             Err(_) => "error",
         };
 
-        // Update agent status
         {
             let mut agents = state_clone.lock().await;
             if let Some(agent) = agents.get_mut(&aid_done) {
@@ -142,14 +142,12 @@ async fn spawn_agent(
     Ok(agent_id)
 }
 
-/// Get list of running agents
 #[tauri::command]
 async fn get_agents(state: State<'_, AppState>) -> Result<Vec<AgentProcess>, String> {
     let agents = state.running_agents.lock().await;
     Ok(agents.values().cloned().collect())
 }
 
-/// Check if claude CLI is available
 #[tauri::command]
 async fn check_claude_cli() -> Result<String, String> {
     let output = Command::new("claude")
@@ -162,7 +160,6 @@ async fn check_claude_cli() -> Result<String, String> {
         .map_err(|e| format!("Invalid output: {}", e))
 }
 
-/// Read directory to detect project tech stack
 #[tauri::command]
 async fn detect_tech_stack(path: String) -> Result<Vec<String>, String> {
     let path = std::path::Path::new(&path);
@@ -183,19 +180,13 @@ async fn detect_tech_stack(path: String) -> Result<Vec<String>, String> {
         ("build.gradle", "Java/Kotlin"),
         ("Gemfile", "Ruby"),
         ("composer.json", "PHP"),
-        (".csproj", "C#/.NET"),
         ("Dockerfile", "Docker"),
         ("docker-compose.yml", "Docker"),
-        ("tailwind.config.js", "Tailwind CSS"),
-        ("tailwind.config.ts", "Tailwind CSS"),
         ("next.config.js", "Next.js"),
         ("next.config.ts", "Next.js"),
         ("vite.config.ts", "Vite"),
         ("angular.json", "Angular"),
-        ("vue.config.js", "Vue.js"),
         ("svelte.config.js", "Svelte"),
-        ("flask", "Flask"),
-        ("django", "Django"),
         ("Makefile", "Make"),
     ];
 
@@ -205,53 +196,112 @@ async fn detect_tech_stack(path: String) -> Result<Vec<String>, String> {
         }
     }
 
-    // Check for specific content in package.json
     let pkg_path = path.join("package.json");
     if pkg_path.exists() {
         if let Ok(content) = std::fs::read_to_string(&pkg_path) {
-            if content.contains("\"react\"") {
-                stack.push("React".to_string());
-            }
-            if content.contains("\"vue\"") {
-                stack.push("Vue.js".to_string());
-            }
-            if content.contains("\"express\"") {
-                stack.push("Express".to_string());
-            }
+            if content.contains("\"react\"") { stack.push("React".to_string()); }
+            if content.contains("\"vue\"") { stack.push("Vue.js".to_string()); }
+            if content.contains("\"express\"") { stack.push("Express".to_string()); }
         }
     }
 
-    // Check for Flask in requirements.txt
     let req_path = path.join("requirements.txt");
     if req_path.exists() {
         if let Ok(content) = std::fs::read_to_string(&req_path) {
-            if content.to_lowercase().contains("flask") {
-                stack.push("Flask".to_string());
-            }
-            if content.to_lowercase().contains("django") {
-                stack.push("Django".to_string());
-            }
-            if content.to_lowercase().contains("fastapi") {
-                stack.push("FastAPI".to_string());
-            }
+            let lower = content.to_lowercase();
+            if lower.contains("flask") { stack.push("Flask".to_string()); }
+            if lower.contains("django") { stack.push("Django".to_string()); }
+            if lower.contains("fastapi") { stack.push("FastAPI".to_string()); }
         }
     }
 
     Ok(stack)
 }
 
+// ── Project CRUD ──
+
+#[tauri::command]
+fn db_list_projects(state: State<'_, AppState>) -> Result<Vec<DbProject>, String> {
+    state.db.list_projects().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_save_project(state: State<'_, AppState>, project: DbProject) -> Result<(), String> {
+    state.db.save_project(&project).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_delete_project(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    state.db.delete_project(&id).map_err(|e| e.to_string())
+}
+
+// ── Task CRUD ──
+
+#[tauri::command]
+fn db_list_tasks(state: State<'_, AppState>, project_id: String) -> Result<Vec<DbTask>, String> {
+    state.db.list_tasks(&project_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_save_task(state: State<'_, AppState>, task: DbTask) -> Result<(), String> {
+    state.db.save_task(&task).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_delete_task(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    state.db.delete_task(&id).map_err(|e| e.to_string())
+}
+
+// ── Agent Run History ──
+
+#[tauri::command]
+fn db_save_agent_run(state: State<'_, AppState>, run: DbAgentRun) -> Result<(), String> {
+    state.db.save_agent_run(&run).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_list_agent_runs(state: State<'_, AppState>, project_id: String, limit: i32) -> Result<Vec<DbAgentRun>, String> {
+    state.db.list_agent_runs(&project_id, limit).map_err(|e| e.to_string())
+}
+
+// ── Knowledge ──
+
+#[tauri::command]
+fn db_save_knowledge(state: State<'_, AppState>, entry: DbKnowledge) -> Result<(), String> {
+    state.db.save_knowledge(&entry).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_get_knowledge(state: State<'_, AppState>, project_id: String) -> Result<Vec<DbKnowledge>, String> {
+    state.db.get_knowledge(&project_id).map_err(|e| e.to_string())
+}
+
+// ── Settings ──
+
+#[tauri::command]
+fn db_get_setting(state: State<'_, AppState>, key: String) -> Result<Option<String>, String> {
+    state.db.get_setting(&key).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_set_setting(state: State<'_, AppState>, key: String, value: String) -> Result<(), String> {
+    state.db.set_setting(&key, &value).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .manage(AppState::default())
-        .invoke_handler(tauri::generate_handler![
-            spawn_agent,
-            get_agents,
-            check_claude_cli,
-            detect_tech_stack,
-        ])
         .setup(|app| {
+            // Initialize database in app data directory
+            let app_data = app.path().app_data_dir().expect("Failed to get app data dir");
+            let db = Database::new(app_data).expect("Failed to initialize database");
+
+            app.manage(AppState {
+                running_agents: Arc::new(Mutex::new(HashMap::new())),
+                db,
+            });
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -261,6 +311,30 @@ pub fn run() {
             }
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![
+            // Agent commands
+            spawn_agent,
+            get_agents,
+            check_claude_cli,
+            detect_tech_stack,
+            // Project CRUD
+            db_list_projects,
+            db_save_project,
+            db_delete_project,
+            // Task CRUD
+            db_list_tasks,
+            db_save_task,
+            db_delete_task,
+            // Agent runs
+            db_save_agent_run,
+            db_list_agent_runs,
+            // Knowledge
+            db_save_knowledge,
+            db_get_knowledge,
+            // Settings
+            db_get_setting,
+            db_set_setting,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
