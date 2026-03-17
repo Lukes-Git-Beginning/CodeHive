@@ -85,7 +85,7 @@ export function Omnibox() {
                 : 'Sprich direkt mit einem Agenten...'
           }
           disabled={!activeProject || isProcessing}
-          className="w-full bg-transparent text-text-primary placeholder:text-text-muted outline-none resize-none font-mono px-4 py-3.5 min-h-[56px] overflow-hidden disabled:opacity-30"
+          className="w-full bg-transparent text-text-primary placeholder:text-text-muted outline-none resize-none font-mono px-5 py-3.5 min-h-[56px] overflow-hidden disabled:opacity-30"
           rows={1}
         />
 

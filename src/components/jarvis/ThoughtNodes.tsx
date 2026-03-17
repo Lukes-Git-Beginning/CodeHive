@@ -1,157 +1,143 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAgentStore } from '../../stores/agentStore'
-import { useChatStore } from '../../stores/chatStore'
-import { FileCode, Cpu, Search, Shield, Wrench, Eye } from 'lucide-react'
+import { Cpu, Search, Shield, Wrench, Eye, Code } from 'lucide-react'
 import type { AgentInstance } from '../../types/agent'
 
-const ROLE_ICONS: Record<string, typeof Cpu> = {
-  orchestrator: Search,
-  frontend: Eye,
-  backend: Wrench,
-  testing: Shield,
-  architect: Search,
-  devops: Wrench,
-  security: Shield,
-  uiux: Eye,
+const ROLE_CONFIG: Record<string, { icon: typeof Cpu; label: string }> = {
+  orchestrator: { icon: Search, label: 'ORC' },
+  frontend: { icon: Eye, label: 'FRN' },
+  backend: { icon: Wrench, label: 'BAK' },
+  testing: { icon: Shield, label: 'TST' },
+  architect: { icon: Code, label: 'ARC' },
+  devops: { icon: Wrench, label: 'DEV' },
+  security: { icon: Shield, label: 'SEC' },
+  uiux: { icon: Eye, label: 'UIX' },
 }
 
 const STATUS_COLORS: Record<string, string> = {
   working: '#00ff88',
   thinking: '#00d4ff',
-  done: 'rgba(255,255,255,0.2)',
+  done: 'rgba(255,255,255,0.25)',
   error: '#ff3366',
-  idle: 'rgba(255,255,255,0.1)',
+  idle: 'rgba(255,255,255,0.15)',
 }
 
-function ThoughtNode({
+interface ThoughtNodesProps {
+  onOpenMindPalace?: () => void
+}
+
+function Badge({
   agent,
-  side,
-  index,
+  angle,
+  radius,
+  onOpenMindPalace,
 }: {
   agent: AgentInstance
-  side: 'left' | 'right'
-  index: number
+  angle: number
+  radius: number
+  onOpenMindPalace?: () => void
 }) {
-  const Icon = ROLE_ICONS[agent.role] || Cpu
+  const config = ROLE_CONFIG[agent.role] || { icon: Cpu, label: 'AGT' }
+  const Icon = config.icon
   const color = STATUS_COLORS[agent.status] || STATUS_COLORS.idle
   const isActive = agent.status === 'working' || agent.status === 'thinking'
-  const lastOutput = agent.output.length > 0 ? agent.output[agent.output.length - 1] : ''
 
-  // Vertical offset from center
-  const yOffset = (index - 0.5) * 80
+  // Calculate position on orbit circle
+  const x = Math.cos((angle * Math.PI) / 180) * radius
+  const y = Math.sin((angle * Math.PI) / 180) * radius
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: side === 'left' ? -30 : 30, scale: 0.8 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: side === 'left' ? -20 : 20, scale: 0.8 }}
-      transition={{ duration: 0.4, delay: index * 0.1 }}
-      className={`absolute ${side === 'left' ? 'left-6' : 'right-6'}`}
-      style={{ top: `calc(50% + ${yOffset}px)`, transform: 'translateY(-50%)' }}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0 }}
+      transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+      className="absolute pointer-events-auto cursor-pointer"
+      style={{
+        left: `calc(50% + ${x}px - 24px)`,
+        top: `calc(50% + ${y}px - 24px)`,
+      }}
+      onClick={onOpenMindPalace}
+      title={`${agent.role}: ${agent.currentTask?.slice(0, 80) || 'Idle'}`}
     >
-      <div className="flex items-center gap-3">
-        {/* Connection line (left side: line on right, right side: line on left) */}
-        {side === 'right' && (
-          <div className="w-8 h-px shrink-0" style={{ backgroundColor: `${color}30` }} />
-        )}
-
-        {/* Node card */}
+      {/* Glow ring for active agents */}
+      {isActive && (
         <motion.div
-          animate={isActive ? {
-            boxShadow: [`0 0 4px ${color}20`, `0 0 10px ${color}40`, `0 0 4px ${color}20`],
-          } : {}}
+          animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0.1, 0.4] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="glass rounded-lg px-3 py-2 max-w-52 border"
-          style={{ borderColor: `${color}25` }}
-        >
-          <div className="flex items-center gap-1.5 mb-1">
-            <Icon className="w-3 h-3 shrink-0" style={{ color }} />
-            <span className="font-hud text-[8px] uppercase" style={{ color }}>
-              {agent.role}
-            </span>
-            {isActive && (
-              <motion.div
-                animate={{ opacity: [1, 0.3, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="w-1.5 h-1.5 rounded-full ml-auto shrink-0"
-                style={{ backgroundColor: color }}
-              />
-            )}
-          </div>
+          className="absolute inset-0 rounded-full"
+          style={{ backgroundColor: `${color}20`, filter: 'blur(8px)' }}
+        />
+      )}
 
-          {agent.currentTask && (
-            <p className="text-[9px] text-text-secondary truncate">
-              {agent.currentTask.slice(0, 55)}
-            </p>
-          )}
+      {/* Badge circle */}
+      <motion.div
+        animate={isActive ? {
+          boxShadow: [`0 0 6px ${color}40`, `0 0 14px ${color}60`, `0 0 6px ${color}40`],
+        } : {}}
+        transition={{ duration: 1.5, repeat: Infinity }}
+        className="relative w-12 h-12 rounded-full glass-elevated flex flex-col items-center justify-center gap-0.5"
+        style={{
+          borderColor: `${color}50`,
+          borderWidth: '1.5px',
+        }}
+      >
+        <Icon className="w-4 h-4" style={{ color }} />
+        <span className="text-[7px] font-hud leading-none" style={{ color }}>
+          {config.label}
+        </span>
+      </motion.div>
 
-          {lastOutput && isActive && (
-            <p className="text-[8px] text-text-muted font-mono truncate mt-0.5">
-              {lastOutput.slice(0, 45)}
-            </p>
-          )}
-        </motion.div>
-
-        {/* Connection line */}
-        {side === 'left' && (
-          <div className="w-8 h-px shrink-0" style={{ backgroundColor: `${color}30` }} />
-        )}
-      </div>
+      {/* Pulse dot */}
+      {isActive && (
+        <motion.div
+          animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+          transition={{ duration: 1, repeat: Infinity }}
+          className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
+          style={{ backgroundColor: color }}
+        />
+      )}
     </motion.div>
   )
 }
 
-function IdleThoughts() {
-  const messages = useChatStore((s) => s.messages)
-  const lastMessages = messages.slice(-2)
-
-  if (lastMessages.length === 0) return null
-
-  return (
-    <>
-      {lastMessages.map((msg, i) => (
-        <motion.div
-          key={msg.id}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 0.4, x: 0 }}
-          transition={{ delay: i * 0.2 }}
-          className="absolute left-6"
-          style={{ top: `calc(45% + ${(i - 0.5) * 50}px)` }}
-        >
-          <div className="glass rounded-md px-2.5 py-1.5 max-w-44 border border-border/30">
-            <div className="flex items-center gap-1 mb-0.5">
-              <FileCode className="w-2.5 h-2.5 text-text-muted" />
-              <span className="font-hud text-[7px] text-text-muted">{msg.role}</span>
-            </div>
-            <p className="text-[8px] text-text-muted truncate">{msg.content.slice(0, 40)}</p>
-          </div>
-        </motion.div>
-      ))}
-    </>
-  )
-}
-
-export function ThoughtNodes() {
+export function ThoughtNodes({ onOpenMindPalace }: ThoughtNodesProps) {
   const currentRun = useAgentStore((s) => s.currentRun)
   const phase = useAgentStore((s) => s.phase)
   const agents = currentRun?.agents || []
   const isIdle = phase === 'idle' || phase === 'done'
 
-  // Split agents: even indices left, odd indices right
-  const leftAgents = agents.filter((_, i) => i % 2 === 0)
-  const rightAgents = agents.filter((_, i) => i % 2 === 1)
+  if (isIdle || agents.length === 0) return null
+
+  // Distribute agents evenly around the orbit
+  const radius = 150
+  const startAngle = -90 // Start from top
+  const angleStep = agents.length > 1 ? 360 / agents.length : 0
 
   return (
     <div className="absolute inset-0 pointer-events-none z-10">
-      <AnimatePresence>
-        {leftAgents.map((agent, i) => (
-          <ThoughtNode key={agent.id} agent={agent} side="left" index={i} />
-        ))}
-        {rightAgents.map((agent, i) => (
-          <ThoughtNode key={agent.id} agent={agent} side="right" index={i} />
-        ))}
+      {/* Orbit path (subtle) */}
+      <div
+        className="absolute rounded-full border border-dashed"
+        style={{
+          left: `calc(50% - ${radius}px)`,
+          top: `calc(50% - ${radius}px)`,
+          width: radius * 2,
+          height: radius * 2,
+          borderColor: 'rgba(255,255,255,0.04)',
+        }}
+      />
 
-        {isIdle && agents.length === 0 && <IdleThoughts key="idle" />}
+      <AnimatePresence>
+        {agents.map((agent, i) => (
+          <Badge
+            key={agent.id}
+            agent={agent}
+            angle={startAngle + i * angleStep}
+            radius={radius}
+            onOpenMindPalace={onOpenMindPalace}
+          />
+        ))}
       </AnimatePresence>
     </div>
   )

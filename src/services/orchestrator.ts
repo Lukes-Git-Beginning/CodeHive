@@ -332,20 +332,11 @@ Analysiere die Aufgabe und erstelle einen detaillierten Task-Plan als JSON.`
 
     return { goals: plan.goals, tasks: plan.tasks, waves }
   } catch (err) {
-    // Show the raw planner output so user can see what the agent analyzed
-    if (output && output.trim()) {
-      chatStore.addMessage({
-        id: crypto.randomUUID(),
-        role: 'orchestrator',
-        content: output.length > 3000 ? output.slice(0, 3000) + '\n\n[...truncated]' : output,
-        timestamp: new Date().toISOString(),
-      })
-    }
-
+    // Graceful fallback — don't show raw JSON or error to user
     chatStore.addMessage({
       id: crypto.randomUUID(),
-      role: 'system',
-      content: `Plan konnte nicht als JSON geparsed werden — Ergebnis wird direkt ausgeführt.`,
+      role: 'orchestrator',
+      content: `Aufgabe wird direkt ausgeführt...`,
       timestamp: new Date().toISOString(),
     })
 

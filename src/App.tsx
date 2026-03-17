@@ -106,8 +106,8 @@ function App() {
       {/* Main Interaction Area */}
       <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-8 pt-16 pb-10 overflow-hidden">
         <ErrorBoundary label="Jarvis">
-          {/* Thought Nodes — full-width absolute overlay */}
-          <ThoughtNodes />
+          {/* Thought Nodes — floating badges around the orb */}
+          <ThoughtNodes onOpenMindPalace={() => setIsMindPalaceOpen(true)} />
 
           <div className="relative flex flex-col items-center w-full max-w-4xl">
             {/* Proactive Suggestions */}
