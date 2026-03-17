@@ -12,6 +12,7 @@ import { MindPalace } from './components/jarvis/MindPalace'
 import { ProjectBar } from './components/jarvis/ProjectBar'
 import { ThoughtNodes } from './components/jarvis/ThoughtNodes'
 import { ResultsSummary } from './components/jarvis/ResultsSummary'
+import { CommandPalette } from './components/jarvis/CommandPalette'
 import type { AgentRun } from './types/agent'
 import { useProjectStore } from './stores/projectStore'
 import { useAgentStore } from './stores/agentStore'
@@ -20,6 +21,7 @@ import { useNotificationStore } from './stores/notificationStore'
 import { useChatStore } from './stores/chatStore'
 import { quickScan } from './services/autoScan'
 import { captureAndAnalyze } from './services/vision'
+import { orchestrate } from './services/orchestrator'
 import { startClipboardMonitor, stopClipboardMonitor } from './services/clipboard'
 import { BrainCircuit, Settings, FolderPlus, Map, Brain, LayoutDashboard, X } from 'lucide-react'
 
@@ -35,6 +37,7 @@ function App() {
   const [isMindPalaceOpen, setIsMindPalaceOpen] = useState(false)
   const [completedRun, setCompletedRun] = useState<AgentRun | null>(null)
   const [overlayPanel, setOverlayPanel] = useState<OverlayPanel>(null)
+  const [showCommandPalette, setShowCommandPalette] = useState(false)
   const activeProjectId = useProjectStore((s) => s.activeProjectId)
   const initialized = useProjectStore((s) => s.initialized)
   const initialize = useProjectStore((s) => s.initialize)
@@ -95,6 +98,7 @@ function App() {
         if (e.key === 'm') { e.preventDefault(); setIsMindPalaceOpen((p) => !p) }
       }
       if (e.ctrlKey && e.shiftKey && e.key === 'S') { e.preventDefault(); captureAndAnalyze() }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') { e.preventDefault(); setShowCommandPalette((p) => !p) }
       if (e.key === 'Escape') {
         setOverlayPanel(null)
         setIsMindPalaceOpen(false)
@@ -342,6 +346,26 @@ function App() {
           </span>
         </div>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onOpenPanel={setOverlayPanel}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenMindPalace={() => setIsMindPalaceOpen(true)}
+        onSwitchProject={() => useProjectStore.getState().setActiveProject(null)}
+        onScreenshot={() => captureAndAnalyze()}
+        onOrchestrate={(prompt) => {
+          if (activeProject) {
+            const chatStore = useChatStore.getState()
+            chatStore.addMessage({ id: crypto.randomUUID(), role: 'user', content: prompt, timestamp: new Date().toISOString() })
+            chatStore.setProcessing(true)
+            orchestrate(prompt, activeProject).catch(() => chatStore.setProcessing(false))
+          }
+        }}
+        onClearChat={() => useChatStore.getState().clearMessages()}
+      />
 
       {/* Settings Modal */}
       <SettingsModal show={showSettings} onClose={() => setShowSettings(false)} />
