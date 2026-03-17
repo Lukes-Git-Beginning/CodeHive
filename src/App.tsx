@@ -186,39 +186,39 @@ function App() {
       <ProjectBar />
 
       {/* Top-right controls */}
-      <div className="absolute right-6 top-5 z-30 flex items-center gap-2">
+      <div className="absolute right-6 top-5 z-30 flex items-center gap-2.5">
         <button
           onClick={() => useProjectStore.getState().setActiveProject(null)}
-          className="p-2.5 glass-elevated rounded-full text-text-muted hover:text-accent neon-hover transition-all"
+          className="p-3 glass-elevated rounded-full text-text-muted hover:text-accent neon-hover transition-all"
           title="Projekt wechseln"
         >
-          <FolderPlus className="w-4 h-4" />
+          <FolderPlus className="w-5 h-5" />
         </button>
         <button
           onClick={() => setIsNotifCenterOpen(true)}
-          className="p-2.5 glass-elevated rounded-full text-text-muted hover:text-cyan neon-hover transition-all relative"
+          className="p-3 glass-elevated rounded-full text-text-muted hover:text-cyan neon-hover transition-all relative"
           title="Benachrichtigungen (Ctrl+N)"
         >
-          <Bell className="w-4 h-4" />
+          <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-danger text-[8px] text-white flex items-center justify-center font-mono">
+            <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-danger text-[9px] text-white flex items-center justify-center font-mono">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </button>
         <button
           onClick={() => setShowSettings(true)}
-          className="p-2.5 glass-elevated rounded-full text-text-muted hover:text-accent neon-hover transition-all"
+          className="p-3 glass-elevated rounded-full text-text-muted hover:text-accent neon-hover transition-all"
           title="Einstellungen (Ctrl+,)"
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="w-5 h-5" />
         </button>
         <button
           onClick={() => setIsMindPalaceOpen(true)}
-          className="p-2.5 glass-elevated rounded-full text-text-secondary hover:text-violet neon-hover transition-all group"
+          className="p-3 glass-elevated rounded-full text-text-secondary hover:text-violet neon-hover transition-all group"
           title="Mind Palace (Ctrl+M)"
         >
-          <BrainCircuit className="w-4 h-4 group-hover:animate-pulse-glow" />
+          <BrainCircuit className="w-5 h-5 group-hover:animate-pulse-glow" />
         </button>
       </div>
 
@@ -246,7 +246,7 @@ function App() {
           {/* Thought Nodes */}
           <ThoughtNodes onOpenMindPalace={() => setIsMindPalaceOpen(true)} />
 
-          <div className="relative flex flex-col items-center w-full max-w-4xl">
+          <div className="relative flex flex-col items-center w-full max-w-4xl mx-auto">
             {/* Proactive Suggestions */}
             <ProactiveSuggestions />
 
@@ -366,43 +366,43 @@ function App() {
       </AnimatePresence>
 
       {/* Quick-Access Bar (above StatusBar) */}
-      <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2">
         <button
           onClick={() => setOverlayPanel('dashboard')}
-          className={`p-2 rounded-lg transition-all ${overlayPanel === 'dashboard' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
+          className={`p-2.5 rounded-lg transition-all ${overlayPanel === 'dashboard' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
           title="Dashboard (Ctrl+D)"
         >
-          <LayoutDashboard className="w-3.5 h-3.5" />
+          <LayoutDashboard className="w-4.5 h-4.5" />
         </button>
         <button
           onClick={() => setOverlayPanel('roadmap')}
-          className={`p-2 rounded-lg transition-all ${overlayPanel === 'roadmap' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
+          className={`p-2.5 rounded-lg transition-all ${overlayPanel === 'roadmap' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
           title="Roadmap (Ctrl+R)"
         >
-          <Map className="w-3.5 h-3.5" />
+          <Map className="w-4.5 h-4.5" />
         </button>
         <button
           onClick={() => setOverlayPanel('knowledge')}
-          className={`p-2 rounded-lg transition-all ${overlayPanel === 'knowledge' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
+          className={`p-2.5 rounded-lg transition-all ${overlayPanel === 'knowledge' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
           title="Knowledge (Ctrl+K)"
         >
-          <Brain className="w-3.5 h-3.5" />
+          <Brain className="w-4.5 h-4.5" />
         </button>
       </div>
 
       {/* Status Bar */}
-      <div className="absolute bottom-0 w-full h-7 glass flex items-center justify-between px-4 z-30 border-t border-border">
-        <span className="text-[9px] font-hud text-text-muted">METIS v1.0</span>
+      <div className="absolute bottom-0 w-full h-8 glass flex items-center justify-between px-4 z-30 border-t border-border">
+        <span className="text-[10px] font-hud text-text-muted">METIS v1.0</span>
         <div className="flex items-center gap-4">
           {activeProject && (
-            <span className="text-[9px] font-mono text-text-muted">
+            <span className="text-[10px] font-mono text-text-muted">
               {activeProject.name}
               {phase !== 'idle' && phase !== 'done' && (
                 <span className="text-cyan ml-2">{phase.toUpperCase().replace('_', ' ')}</span>
               )}
             </span>
           )}
-          <span className="flex items-center gap-1.5 text-[9px] font-mono text-accent">
+          <span className="flex items-center gap-1.5 text-[10px] font-mono text-accent">
             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
             ONLINE
           </span>
