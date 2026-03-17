@@ -424,6 +424,19 @@ fn read_claude_md(path: String) -> Result<Option<String>, String> {
     }
 }
 
+// ── Clipboard ──
+
+#[tauri::command]
+fn read_clipboard() -> Result<String, String> {
+    use std::process::Command as StdCommand;
+    // Use PowerShell to read clipboard on Windows
+    let output = StdCommand::new("powershell")
+        .args(["-Command", "Get-Clipboard"])
+        .output()
+        .map_err(|e| format!("Clipboard read failed: {}", e))?;
+    String::from_utf8(output.stdout).map_err(|e| format!("UTF8 error: {}", e))
+}
+
 // ── Screenshot Capture ──
 
 #[tauri::command]
@@ -576,6 +589,8 @@ pub fn run() {
             db_search_knowledge,
             db_delete_knowledge,
             read_claude_md,
+            // Clipboard
+            read_clipboard,
             // Screenshot
             capture_screenshot,
             screenshot_to_base64,

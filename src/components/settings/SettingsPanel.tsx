@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Settings, Key, Bot, Palette, ClipboardCheck, Zap } from 'lucide-react'
+import { Settings, Key, Bot, Palette, ClipboardCheck, Zap, HardDrive } from 'lucide-react'
 import { getSetting, setSetting } from '../../services/persistence'
 import { checkClaudeCli } from '../../services/orchestrator'
+import { checkOllamaStatus } from '../../services/localLlm'
 import { StatusDot } from '../ui/StatusDot'
 import { MCPSettings } from './MCPSettings'
 
@@ -31,6 +32,7 @@ export function SettingsPanel() {
   const [autoAccept, setAutoAccept] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [claudeStatus, setClaudeStatus] = useState<string | null>(null)
+  const [ollamaStatus, setOllamaStatus] = useState<{ running: boolean; models: string[] }>({ running: false, models: [] })
   const [testing, setTesting] = useState(false)
 
   useEffect(() => {
@@ -46,6 +48,7 @@ export function SettingsPanel() {
       setLoaded(true)
 
       checkClaudeCli().then(setClaudeStatus)
+      checkOllamaStatus().then(setOllamaStatus)
     }
     load()
   }, [])
@@ -164,6 +167,48 @@ export function SettingsPanel() {
             {testing ? 'Testing...' : 'Test Connection'}
           </button>
         </div>
+      </motion.section>
+
+      {/* Local LLM */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.12 }}
+        className="glass-elevated rounded-xl p-5 mb-4"
+      >
+        <h3 className="font-hud text-[11px] text-warning mb-4 flex items-center gap-2">
+          <HardDrive className="w-3.5 h-3.5" />
+          Local LLM (Ollama)
+        </h3>
+        <div className="flex items-center gap-3 mb-3">
+          <StatusDot status={ollamaStatus.running ? 'online' : 'error'} size={8} />
+          <span className="text-sm text-text-primary font-mono">
+            {ollamaStatus.running
+              ? `Ollama aktiv — ${ollamaStatus.models.length} Modelle`
+              : 'Ollama nicht erreichbar'}
+          </span>
+          <button
+            onClick={() => checkOllamaStatus().then(setOllamaStatus)}
+            className="ml-auto text-[11px] font-hud text-warning bg-warning/10 border border-warning/20
+                       rounded-lg px-3 py-1 hover:bg-warning/20 transition-colors"
+          >
+            Prüfen
+          </button>
+        </div>
+        {ollamaStatus.running && ollamaStatus.models.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {ollamaStatus.models.slice(0, 6).map((m) => (
+              <span key={m} className="text-[10px] font-mono bg-bg-surface px-2 py-0.5 rounded text-text-secondary">
+                {m}
+              </span>
+            ))}
+          </div>
+        )}
+        {!ollamaStatus.running && (
+          <p className="text-[10px] text-text-muted">
+            Installiere Ollama für Offline-Nutzung: ollama.com
+          </p>
+        )}
       </motion.section>
 
       {/* MCP Servers */}

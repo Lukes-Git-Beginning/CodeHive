@@ -20,6 +20,7 @@ import { useNotificationStore } from './stores/notificationStore'
 import { useChatStore } from './stores/chatStore'
 import { quickScan } from './services/autoScan'
 import { captureAndAnalyze } from './services/vision'
+import { startClipboardMonitor, stopClipboardMonitor } from './services/clipboard'
 import { BrainCircuit, Settings, FolderPlus, Map, Brain, LayoutDashboard, X } from 'lucide-react'
 
 // Lazy-loaded panels (opened as overlays)
@@ -60,6 +61,18 @@ function App() {
   useEffect(() => {
     if (activeProjectId) loadMessages(activeProjectId)
   }, [activeProjectId, loadMessages])
+
+  // Clipboard monitoring — detect code and suggest analysis
+  useEffect(() => {
+    if (!activeProjectId) return
+    startClipboardMonitor((code) => {
+      useNotificationStore.getState().addNotification(
+        'info',
+        `Code im Clipboard erkannt (${code.split('\n').length} Zeilen) — füge ihn in die Omnibox ein um ihn zu analysieren.`
+      )
+    })
+    return () => stopClipboardMonitor()
+  }, [activeProjectId])
 
   // AutoScan on project switch
   useEffect(() => {
