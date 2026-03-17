@@ -305,10 +305,20 @@ function App() {
       {/* Status Bar */}
       <div className="absolute bottom-0 w-full h-7 glass flex items-center justify-between px-4 z-30 border-t border-border">
         <span className="text-[9px] font-hud text-text-muted">METIS v1.0</span>
-        <span className="flex items-center gap-1.5 text-[9px] font-mono text-accent">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-          ONLINE
-        </span>
+        <div className="flex items-center gap-4">
+          {activeProject && (
+            <span className="text-[9px] font-mono text-text-muted">
+              {activeProject.name}
+              {phase !== 'idle' && phase !== 'done' && (
+                <span className="text-cyan ml-2">{phase.toUpperCase().replace('_', ' ')}</span>
+              )}
+            </span>
+          )}
+          <span className="flex items-center gap-1.5 text-[9px] font-mono text-accent">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+            ONLINE
+          </span>
+        </div>
       </div>
 
       {/* Settings Modal */}

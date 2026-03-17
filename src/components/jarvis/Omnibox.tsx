@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Send, Zap, GitMerge } from 'lucide-react'
 import { orchestrate, directChat } from '../../services/orchestrator'
 import { useProjectStore } from '../../stores/projectStore'
+import { useAgentStore } from '../../stores/agentStore'
 import { useChatStore } from '../../stores/chatStore'
 import { useNotificationStore } from '../../stores/notificationStore'
 import type { ChatMessage } from '../../types/agent'
@@ -13,6 +14,7 @@ export function Omnibox() {
   const [isFocused, setIsFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const activeProject = useProjectStore((s) => s.getActiveProject())
+  const phase = useAgentStore((s) => s.phase)
   const { isProcessing, addMessage, setProcessing } = useChatStore()
 
   useEffect(() => {
@@ -118,8 +120,10 @@ export function Omnibox() {
           </div>
 
           <div className="flex items-center gap-2">
-            {isProcessing && (
-              <span className="text-[10px] font-hud text-accent animate-pulse">Processing...</span>
+            {phase !== 'idle' && phase !== 'done' && (
+              <span className="text-[9px] font-hud text-cyan animate-pulse">
+                {phase === 'planning' ? 'Planung...' : phase === 'executing' ? 'Ausführung...' : phase === 'verifying' ? 'Verifikation...' : phase === 'awaiting_approval' ? 'Warte auf OK...' : 'Arbeite...'}
+              </span>
             )}
             <button
               onClick={handleSubmit}

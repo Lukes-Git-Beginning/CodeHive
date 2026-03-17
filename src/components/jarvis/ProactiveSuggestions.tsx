@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Check, X, Shield, TestTube, RefreshCw, Search } from 'lucide-react'
+import { Sparkles, Check, X, Shield, TestTube, RefreshCw, Search, GraduationCap } from 'lucide-react'
 import { orchestrate } from '../../services/orchestrator'
 import { useProjectStore } from '../../stores/projectStore'
 import { useProfileStore } from '../../stores/profileStore'
 import { useAgentStore } from '../../stores/agentStore'
 import { useChatStore } from '../../stores/chatStore'
+import { generateResearchSuggestions, buildResearchPrompt } from '../../services/webResearch'
 import type { ChatMessage } from '../../types/agent'
 
 interface Suggestion {
@@ -13,13 +14,14 @@ interface Suggestion {
   icon: typeof Sparkles
   text: string
   actionPayload: string
-  category: 'security' | 'testing' | 'review' | 'improve'
+  category: 'security' | 'testing' | 'review' | 'improve' | 'learn'
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
   security: 'text-danger',
   testing: 'text-violet',
   review: 'text-cyan',
+  learn: 'text-warning',
   improve: 'text-accent',
 }
 
@@ -98,6 +100,18 @@ function generateSuggestions(
       text: `${taskCount} offene Tasks — soll Metis einen bearbeiten?`,
       actionPayload: 'Schau dir die offenen Tasks auf der Roadmap an und bearbeite den mit der höchsten Priorität.',
       category: 'improve',
+    })
+  }
+
+  // Web Research suggestions from Metis
+  const researchIdeas = generateResearchSuggestions({ id: '', name: projectName, path: '', techStack, description: '', createdAt: '', updatedAt: '' })
+  for (const idea of researchIdeas.slice(0, 1)) {
+    suggestions.push({
+      id: idea.id,
+      icon: GraduationCap,
+      text: `Metis möchte lernen: ${idea.topic}`,
+      actionPayload: buildResearchPrompt(idea),
+      category: 'learn',
     })
   }
 
