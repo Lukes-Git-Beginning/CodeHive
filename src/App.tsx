@@ -10,6 +10,7 @@ import { ProactiveSuggestions } from './components/jarvis/ProactiveSuggestions'
 import { ConversationStream } from './components/jarvis/ConversationStream'
 import { MindPalace } from './components/jarvis/MindPalace'
 import { ProjectBar } from './components/jarvis/ProjectBar'
+import { ThoughtNodes } from './components/jarvis/ThoughtNodes'
 import { useProjectStore } from './stores/projectStore'
 import { useAgentStore } from './stores/agentStore'
 import { BrainCircuit, Settings, FolderPlus } from 'lucide-react'
@@ -109,8 +110,11 @@ function App() {
             {/* Proactive Suggestions */}
             <ProactiveSuggestions />
 
-            {/* Core Sphere */}
-            <JarvisCore />
+            {/* Core Sphere + Thought Nodes */}
+            <div className="relative">
+              <JarvisCore />
+              <ThoughtNodes />
+            </div>
 
             {/* Plan Approval (inline) */}
             <AnimatePresence>
