@@ -9,6 +9,7 @@ import { useChatStore } from '../stores/chatStore'
 import { useNotificationStore } from '../stores/notificationStore'
 import { ROLE_PROMPTS, getRoleForTask } from './agentRoles'
 import { generateMcpConfig } from './mcpConfig'
+import { useProfileStore } from '../stores/profileStore'
 
 // ── Types ──
 
@@ -285,13 +286,14 @@ async function planTask(prompt: string, project: Project): Promise<ExecutionPlan
     timestamp: new Date().toISOString(),
   })
 
-  // Inject knowledge base context (with FTS search using the user's prompt)
+  // Inject knowledge base context + user profile
   const kbContext = await getRelevantContext(project, prompt)
+  const profileContext = useProfileStore.getState().getContextSummary()
 
   const plannerPrompt = `Projekt: ${project.name}
 Pfad: ${project.path}
 Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}
-${kbContext}
+${kbContext}${profileContext}
 
 Aufgabe vom User: ${prompt}
 
@@ -552,6 +554,10 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
       await persistAgentRuns(finishedRun, project.id)
     }
 
+    // Record in user profile
+    const roles = finishedRun?.agents.map((a) => a.role) || []
+    useProfileStore.getState().recordRun(prompt, roles, true)
+
     agentStore.finishRun('Alle Phasen abgeschlossen: Plan → Execute → Verify')
     chatStore.addMessage({
       id: crypto.randomUUID(),
@@ -567,6 +573,7 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
       timestamp: new Date().toISOString(),
     })
     agentStore.finishRun(`Fehler: ${err}`)
+    useProfileStore.getState().recordRun(prompt, [], false)
     useNotificationStore.getState().addNotification('error', `Orchestrierung fehlgeschlagen: ${err}`)
   } finally {
     chatStore.setProcessing(false)
@@ -621,6 +628,9 @@ Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}`
       await extractLearnings(finishedRun, project)
       await persistAgentRuns(finishedRun, project.id)
     }
+
+    const directRoles = finishedRun?.agents.map((a) => a.role) || []
+    useProfileStore.getState().recordRun(prompt, directRoles, true)
 
     agentStore.finishRun('Direct Chat abgeschlossen')
     chatStore.addMessage({

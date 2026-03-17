@@ -15,6 +15,7 @@ import { ResultsSummary } from './components/jarvis/ResultsSummary'
 import type { AgentRun } from './types/agent'
 import { useProjectStore } from './stores/projectStore'
 import { useAgentStore } from './stores/agentStore'
+import { useProfileStore } from './stores/profileStore'
 import { BrainCircuit, Settings, FolderPlus } from 'lucide-react'
 
 function App() {
@@ -37,7 +38,8 @@ function App() {
     }
   }, [phase, runHistory, completedRun])
 
-  useEffect(() => { initialize() }, [initialize])
+  const loadProfile = useProfileStore((s) => s.loadProfile)
+  useEffect(() => { initialize(); loadProfile() }, [initialize, loadProfile])
 
   // Loading state
   if (!initialized) {
