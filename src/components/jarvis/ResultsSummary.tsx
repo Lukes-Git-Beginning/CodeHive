@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle, XCircle, ChevronDown, ChevronRight, ListPlus, X, Clock, Cpu } from 'lucide-react'
+import { CheckCircle, XCircle, ChevronDown, ChevronRight, ListPlus, X, Clock, Cpu, ThumbsUp, ThumbsDown } from 'lucide-react'
 import type { AgentRun } from '../../types/agent'
 import { useProjectStore } from '../../stores/projectStore'
+import { useProfileStore } from '../../stores/profileStore'
 import { saveTask } from '../../services/persistence'
 import { useNotificationStore } from '../../stores/notificationStore'
 
@@ -181,26 +182,54 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
           })}
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 p-6 border-t border-border shrink-0">
-          <button
-            onClick={handleAddToRoadmap}
-            disabled={addingTasks || run.agents.length === 0}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg
-                       bg-accent/15 border border-accent/30 text-accent text-xs font-hud
-                       hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,255,136,0.3)]
-                       disabled:opacity-30 transition-all"
-          >
-            <ListPlus className="w-4 h-4" />
-            {addingTasks ? 'Wird erstellt...' : 'Zur Roadmap'}
-          </button>
-          <button
-            onClick={onClose}
-            className="flex-1 py-2.5 rounded-lg glass text-text-secondary text-xs font-hud
-                       hover:text-text-primary transition-all"
-          >
-            Schließen
-          </button>
+        {/* Feedback + Actions */}
+        <div className="p-6 border-t border-border shrink-0 space-y-3">
+          {/* Feedback */}
+          <div className="flex items-center justify-center gap-4">
+            <span className="text-[10px] font-hud text-text-muted">Wie war das Ergebnis?</span>
+            <button
+              onClick={() => {
+                useProfileStore.getState().recordFeedback(true)
+                addNotification('info', 'Danke! Metis lernt aus deinem Feedback.')
+              }}
+              className="p-2 rounded-lg glass hover:bg-accent/15 hover:text-accent text-text-muted transition-colors"
+              title="Gut"
+            >
+              <ThumbsUp className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                useProfileStore.getState().recordFeedback(false)
+                addNotification('info', 'Verstanden. Metis wird beim nächsten Mal gründlicher arbeiten.')
+              }}
+              className="p-2 rounded-lg glass hover:bg-danger/15 hover:text-danger text-text-muted transition-colors"
+              title="Schlecht"
+            >
+              <ThumbsDown className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={handleAddToRoadmap}
+              disabled={addingTasks || run.agents.length === 0}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg
+                         bg-accent/15 border border-accent/30 text-accent text-xs font-hud
+                         hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,255,136,0.3)]
+                         disabled:opacity-30 transition-all"
+            >
+              <ListPlus className="w-4 h-4" />
+              {addingTasks ? 'Wird erstellt...' : 'Zur Roadmap'}
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-lg glass text-text-secondary text-xs font-hud
+                         hover:text-text-primary transition-all"
+            >
+              Schließen
+            </button>
+          </div>
         </div>
       </motion.div>
     </motion.div>
