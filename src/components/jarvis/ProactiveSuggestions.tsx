@@ -8,6 +8,7 @@ import { useAgentStore } from '../../stores/agentStore'
 import { useChatStore } from '../../stores/chatStore'
 import { generateResearchSuggestions, buildResearchPrompt } from '../../services/webResearch'
 import { useGitStore } from '../../stores/gitStore'
+import { triggerSelfImprovement } from '../../services/selfImprove'
 import type { ChatMessage } from '../../types/agent'
 
 interface Suggestion {
@@ -164,6 +165,17 @@ export function ProactiveSuggestions() {
   const handleAccept = async (suggestion: Suggestion) => {
     if (!activeProject || isProcessing) return
     setDismissed((prev) => new Set(prev).add(suggestion.id))
+
+    // Self-improve uses dedicated handler
+    if (suggestion.id === 'self-improve') {
+      try {
+        await triggerSelfImprovement()
+      } catch (err) {
+        addMessage({ id: crypto.randomUUID(), role: 'system', content: `Fehler: ${err}`, timestamp: new Date().toISOString() })
+        setProcessing(false)
+      }
+      return
+    }
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),

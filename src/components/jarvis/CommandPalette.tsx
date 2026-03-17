@@ -22,6 +22,7 @@ interface CommandPaletteProps {
   onSwitchProject: () => void
   onScreenshot: () => void
   onOrchestrate: (prompt: string) => void
+  onSelfImprove: () => void
   onClearChat: () => void
 }
 
@@ -35,6 +36,7 @@ export function CommandPalette({
   onSwitchProject,
   onScreenshot,
   onOrchestrate,
+  onSelfImprove,
   onClearChat,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
@@ -50,7 +52,7 @@ export function CommandPalette({
     { id: 'screenshot', icon: Camera, label: 'Screenshot analysieren', description: 'Bildschirm aufnehmen und analysieren', shortcut: 'Ctrl+Shift+S', action: () => { onScreenshot(); onClose() } },
     { id: 'security', icon: Shield, label: 'Security-Audit', description: 'Code auf Sicherheitslücken prüfen', action: () => { onOrchestrate('Führe einen Security-Audit des Codes durch.'); onClose() } },
     { id: 'tests', icon: TestTube, label: 'Tests generieren', description: 'Tests für aktuelle Änderungen schreiben', action: () => { onOrchestrate('Generiere Tests für die zuletzt geänderten Dateien.'); onClose() } },
-    { id: 'improve', icon: RefreshCw, label: 'Metis verbessern', description: 'Selbstverbesserung starten', action: () => { onOrchestrate('Analysiere den CodeHive-Quellcode und schlage Verbesserungen vor.'); onClose() } },
+    { id: 'improve', icon: RefreshCw, label: 'Metis verbessern', description: 'Selbstverbesserung starten', action: () => { onSelfImprove(); onClose() } },
     { id: 'switch', icon: FolderPlus, label: 'Projekt wechseln', description: 'Anderes Projekt auswählen', action: () => { onSwitchProject(); onClose() } },
     { id: 'clear', icon: Trash2, label: 'Chat leeren', description: 'Konversation zurücksetzen', action: () => { onClearChat(); onClose() } },
     // New features

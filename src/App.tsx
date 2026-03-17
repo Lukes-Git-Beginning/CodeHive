@@ -23,6 +23,7 @@ import { quickScan } from './services/autoScan'
 import { captureAndAnalyze } from './services/vision'
 import { orchestrate } from './services/orchestrator'
 import { startClipboardMonitor, stopClipboardMonitor } from './services/clipboard'
+import { triggerSelfImprovement } from './services/selfImprove'
 import { useGitStore } from './stores/gitStore'
 import { useSchedulerStore } from './stores/schedulerStore'
 import { useThemeStore } from './stores/themeStore'
@@ -417,6 +418,7 @@ function App() {
         onOpenSettings={() => setShowSettings(true)}
         onOpenMindPalace={() => setIsMindPalaceOpen(true)}
         onOpenNotifications={() => setIsNotifCenterOpen(true)}
+        onSelfImprove={() => triggerSelfImprovement()}
         onSwitchProject={() => useProjectStore.getState().setActiveProject(null)}
         onScreenshot={() => captureAndAnalyze()}
         onOrchestrate={(prompt) => {
