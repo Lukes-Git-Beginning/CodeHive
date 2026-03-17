@@ -81,8 +81,8 @@ export function Omnibox() {
             !activeProject
               ? 'Wähle zuerst ein Projekt...'
               : mode === 'orchestrator'
-                ? 'Was soll ich für dich tun? (Plan → Execute → Verify)'
-                : 'Sprich direkt mit einem Agenten...'
+                ? 'Was kann Metis für dich tun?'
+                : 'Direkt mit Metis sprechen...'
           }
           disabled={!activeProject || isProcessing}
           className="w-full bg-transparent text-text-primary placeholder:text-text-muted outline-none resize-none font-mono px-5 py-3.5 min-h-[56px] overflow-hidden disabled:opacity-30"

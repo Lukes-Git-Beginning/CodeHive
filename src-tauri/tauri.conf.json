@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "CodeHive",
+        "title": "Metis — CodeHive",
         "width": 1400,
         "height": 900,
         "minWidth": 1000,

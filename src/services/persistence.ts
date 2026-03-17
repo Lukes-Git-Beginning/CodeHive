@@ -136,6 +136,39 @@ export async function deleteTask(id: string): Promise<void> {
   }
 }
 
+// ── Agent Runs ──
+
+interface DbAgentRun {
+  id: string
+  project_id: string
+  task_id: string | null
+  agent_type: string
+  prompt: string
+  status: string
+  output: string
+  files_changed: string
+  started_at: string
+  finished_at: string | null
+}
+
+export async function saveAgentRun(run: DbAgentRun): Promise<void> {
+  try {
+    await invoke('db_save_agent_run', { run })
+  } catch (err) {
+    console.error('Failed to save agent run:', err)
+  }
+}
+
+export async function loadAgentRuns(projectId: string, limit = 20): Promise<DbAgentRun[]> {
+  try {
+    return await invoke<DbAgentRun[]>('db_list_agent_runs', { projectId, limit })
+  } catch {
+    return []
+  }
+}
+
+// ── Settings ──
+
 export async function getSetting(key: string): Promise<string | null> {
   try {
     return await invoke<string | null>('db_get_setting', { key })

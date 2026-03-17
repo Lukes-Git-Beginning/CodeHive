@@ -11,6 +11,8 @@ import { ConversationStream } from './components/jarvis/ConversationStream'
 import { MindPalace } from './components/jarvis/MindPalace'
 import { ProjectBar } from './components/jarvis/ProjectBar'
 import { ThoughtNodes } from './components/jarvis/ThoughtNodes'
+import { ResultsSummary } from './components/jarvis/ResultsSummary'
+import type { AgentRun } from './types/agent'
 import { useProjectStore } from './stores/projectStore'
 import { useAgentStore } from './stores/agentStore'
 import { BrainCircuit, Settings, FolderPlus } from 'lucide-react'
@@ -18,12 +20,22 @@ import { BrainCircuit, Settings, FolderPlus } from 'lucide-react'
 function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [isMindPalaceOpen, setIsMindPalaceOpen] = useState(false)
+  const [completedRun, setCompletedRun] = useState<AgentRun | null>(null)
   const activeProjectId = useProjectStore((s) => s.activeProjectId)
   const initialized = useProjectStore((s) => s.initialized)
   const initialize = useProjectStore((s) => s.initialize)
+  const phase = useAgentStore((s) => s.phase)
   const pendingPlan = useAgentStore((s) => s.pendingPlan)
   const approvePlan = useAgentStore((s) => s.approvePlan)
   const rejectPlan = useAgentStore((s) => s.rejectPlan)
+  const runHistory = useAgentStore((s) => s.runHistory)
+
+  // Show results summary when a run completes
+  useEffect(() => {
+    if (phase === 'done' && runHistory.length > 0 && !completedRun) {
+      setCompletedRun(runHistory[0])
+    }
+  }, [phase, runHistory, completedRun])
 
   useEffect(() => { initialize() }, [initialize])
 
@@ -172,9 +184,19 @@ function App() {
         </ErrorBoundary>
       </main>
 
+      {/* Results Summary Modal */}
+      <AnimatePresence>
+        {completedRun && (
+          <ResultsSummary
+            run={completedRun}
+            onClose={() => setCompletedRun(null)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Minimal Status Bar */}
       <div className="absolute bottom-0 w-full h-7 glass flex items-center justify-between px-4 z-40 border-t border-border">
-        <span className="text-[9px] font-hud text-text-muted">CODEHIVE v2.0</span>
+        <span className="text-[9px] font-hud text-text-muted">METIS v1.0</span>
         <span className="flex items-center gap-1.5 text-[9px] font-mono text-accent">
           <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
           ONLINE

@@ -4,7 +4,7 @@ import type { AgentInstance, AgentRun } from '../types/agent'
 import type { Project } from '../types/project'
 import { useAgentStore } from '../stores/agentStore'
 import { extractLearnings, getRelevantContext, getProjectBrief } from './knowledge'
-import { getSetting } from './persistence'
+import { getSetting, saveAgentRun } from './persistence'
 import { useChatStore } from '../stores/chatStore'
 import { useNotificationStore } from '../stores/notificationStore'
 import { ROLE_PROMPTS, getRoleForTask } from './agentRoles'
@@ -545,17 +545,18 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
     // Phase 3: Verify
     await verifyWork(plan, project)
 
-    // Done — extract learnings
+    // Done — extract learnings + persist agent runs to DB
     const finishedRun = useAgentStore.getState().currentRun
     if (finishedRun) {
       await extractLearnings(finishedRun, project)
+      await persistAgentRuns(finishedRun, project.id)
     }
 
     agentStore.finishRun('Alle Phasen abgeschlossen: Plan → Execute → Verify')
     chatStore.addMessage({
       id: crypto.randomUUID(),
       role: 'orchestrator',
-      content: 'Orchestrierung abgeschlossen. Alle 3 Phasen fertig.',
+      content: 'Metis hat alle 3 Phasen abgeschlossen.',
       timestamp: new Date().toISOString(),
     })
   } catch (err) {
@@ -618,13 +619,14 @@ Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}`
     const finishedRun = useAgentStore.getState().currentRun
     if (finishedRun) {
       await extractLearnings(finishedRun, project)
+      await persistAgentRuns(finishedRun, project.id)
     }
 
     agentStore.finishRun('Direct Chat abgeschlossen')
     chatStore.addMessage({
       id: crypto.randomUUID(),
       role: 'orchestrator',
-      content: 'Agent fertig.',
+      content: 'Metis hat die Aufgabe abgeschlossen.',
       timestamp: new Date().toISOString(),
     })
   } catch (err) {
@@ -639,6 +641,25 @@ Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}`
     chatStore.setProcessing(false)
     orchestrationInProgress = false
     cleanupEventListeners()
+  }
+}
+
+// ── Persist Agent Runs to DB ──
+
+async function persistAgentRuns(run: AgentRun, projectId: string): Promise<void> {
+  for (const agent of run.agents) {
+    await saveAgentRun({
+      id: agent.id,
+      project_id: projectId,
+      task_id: null,
+      agent_type: agent.role,
+      prompt: agent.currentTask || run.prompt,
+      status: agent.status === 'done' ? 'completed' : 'failed',
+      output: agent.output.join('\n'),
+      files_changed: JSON.stringify(agent.filesChanged),
+      started_at: agent.startedAt,
+      finished_at: agent.finishedAt || new Date().toISOString(),
+    })
   }
 }
 
