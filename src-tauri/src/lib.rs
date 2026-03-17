@@ -429,11 +429,16 @@ fn read_claude_md(path: String) -> Result<Option<String>, String> {
 #[tauri::command]
 fn read_clipboard() -> Result<String, String> {
     use std::process::Command as StdCommand;
-    // Use PowerShell to read clipboard on Windows
-    let output = StdCommand::new("powershell")
-        .args(["-Command", "Get-Clipboard"])
-        .output()
-        .map_err(|e| format!("Clipboard read failed: {}", e))?;
+    #[cfg(target_os = "windows")]
+    use std::os::windows::process::CommandExt;
+
+    let mut cmd = StdCommand::new("powershell");
+    cmd.args(["-NoProfile", "-Command", "Get-Clipboard"]);
+
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+    let output = cmd.output().map_err(|e| format!("Clipboard read failed: {}", e))?;
     String::from_utf8(output.stdout).map_err(|e| format!("UTF8 error: {}", e))
 }
 
@@ -848,7 +853,6 @@ pub fn run() {
                         "show" => {
                             if let Some(window) = app.get_webview_window("main") {
                                 let _ = window.show();
-                                let _ = window.set_focus();
                             }
                         }
                         "quit" => {
