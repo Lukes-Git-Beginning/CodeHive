@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bot, CheckCircle, AlertCircle, Loader2, Clock, Zap, Search, Shield, ChevronDown } from 'lucide-react'
+import { Bot, CheckCircle, AlertCircle, Loader2, Clock, Zap, Search, Shield, ChevronDown, Square } from 'lucide-react'
 import { useAgentStore } from '../../stores/agentStore'
-import type { AgentInstance, AgentStatus } from '../../types/agent'
+import type { AgentInstance } from '../../types/agent'
 import { StatusDot } from '../ui/StatusDot'
 
 const DEFAULT_STATUS = { color: 'text-cyan', dotStatus: 'busy' as const, label: 'Active' }
@@ -24,6 +24,7 @@ const roleColors: Record<string, string> = {
   architect: 'text-warning border-warning/20 bg-warning/8',
   devops: 'text-cyan border-cyan/20 bg-cyan/8',
   security: 'text-danger border-danger/20 bg-danger/8',
+  uiux: 'text-[#f472b6] border-[#f472b6]/20 bg-[#f472b6]/8',
 }
 
 const phaseLabels: Record<string, { label: string; icon: typeof Bot; color: string }> = {
@@ -35,11 +36,34 @@ const phaseLabels: Record<string, { label: string; icon: typeof Bot; color: stri
   done: { label: 'Complete', icon: CheckCircle, color: 'text-accent' },
 }
 
-function AgentCard({ agent }: { agent: AgentInstance }) {
+function formatElapsed(startedAt: string, finishedAt?: string): string {
+  const start = new Date(startedAt).getTime()
+  const end = finishedAt ? new Date(finishedAt).getTime() : Date.now()
+  const seconds = Math.floor((end - start) / 1000)
+  if (seconds < 60) return `${seconds}s`
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}m ${secs}s`
+}
+
+const AgentCard = memo(function AgentCard({ agent }: { agent: AgentInstance }) {
   const [expanded, setExpanded] = useState(false)
+  const [elapsed, setElapsed] = useState(() => formatElapsed(agent.startedAt, agent.finishedAt))
   const status = statusMap[agent.status] || DEFAULT_STATUS
   const roleStyle = roleColors[agent.role] || 'text-text-secondary border-border bg-bg-surface'
   const isActive = agent.status === 'thinking' || agent.status === 'working'
+
+  // Live elapsed time ticker for active agents
+  useEffect(() => {
+    if (!isActive) {
+      setElapsed(formatElapsed(agent.startedAt, agent.finishedAt))
+      return
+    }
+    const timer = setInterval(() => {
+      setElapsed(formatElapsed(agent.startedAt))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [isActive, agent.startedAt, agent.finishedAt])
 
   return (
     <motion.div
@@ -52,6 +76,7 @@ function AgentCard({ agent }: { agent: AgentInstance }) {
           {agent.role}
         </span>
         <div className="flex items-center gap-1.5">
+          <span className="text-[9px] font-mono text-text-muted">{elapsed}</span>
           <StatusDot status={status.dotStatus} size={6} />
           <span className={`text-[10px] font-mono ${status.color}`}>{status.label}</span>
         </div>
@@ -79,7 +104,7 @@ function AgentCard({ agent }: { agent: AgentInstance }) {
                 className="overflow-hidden"
               >
                 <div className="bg-bg-deep/50 rounded p-2 max-h-32 overflow-y-auto">
-                  {agent.output.slice(-8).map((line, i) => (
+                  {agent.output.slice(-12).map((line, i) => (
                     <p key={i} className="text-[10px] text-text-muted font-mono truncate">{line}</p>
                   ))}
                 </div>
@@ -90,7 +115,7 @@ function AgentCard({ agent }: { agent: AgentInstance }) {
       )}
     </motion.div>
   )
-}
+})
 
 export function AgentMonitor() {
   const { currentRun, runHistory, phase, currentWave, totalWaves } = useAgentStore()

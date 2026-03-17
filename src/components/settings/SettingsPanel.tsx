@@ -4,6 +4,7 @@ import { Settings, Key, Bot, Palette, ClipboardCheck, Zap } from 'lucide-react'
 import { getSetting, setSetting } from '../../services/persistence'
 import { checkClaudeCli } from '../../services/orchestrator'
 import { StatusDot } from '../ui/StatusDot'
+import { MCPSettings } from './MCPSettings'
 
 function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -165,11 +166,21 @@ export function SettingsPanel() {
         </div>
       </motion.section>
 
-      {/* Theme */}
+      {/* MCP Servers */}
       <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
+        className="glass-elevated rounded-xl p-5 mb-4"
+      >
+        <MCPSettings />
+      </motion.section>
+
+      {/* Theme */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
         className="glass-elevated rounded-xl p-5"
       >
         <h3 className="font-hud text-[11px] text-warning mb-4 flex items-center gap-2">

@@ -10,6 +10,7 @@ export interface PendingPlan {
     name: string
     complexity: number
     model: string
+    role?: string
   }>
   waveCount: number
 }

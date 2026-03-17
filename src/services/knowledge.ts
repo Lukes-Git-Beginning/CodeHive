@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import type { Project } from '../types/project'
 import type { AgentRun } from '../types/agent'
+import { getEnhancedContext } from './rag'
 
 interface KnowledgeEntry {
   id: string
@@ -60,7 +61,7 @@ export async function getRecentRunContext(project: Project): Promise<string> {
     const entries = await invoke<KnowledgeEntry[]>('db_get_knowledge', { projectId: project.id })
     const runs = entries
       .filter((e) => e.key.startsWith('run:'))
-      .slice(0, 10) // Most recent 10
+      .slice(0, 10)
 
     if (runs.length === 0) return ''
 
@@ -81,20 +82,22 @@ export async function getRecentRunContext(project: Project): Promise<string> {
   }
 }
 
-// ── Tier 3: Knowledge Archive (compact) ──
+// ── Combined Context (Tier 1 + 2 + RAG) ──
 
 /**
- * Get all relevant context for the planner (combines all tiers)
+ * Get all relevant context for the planner (combines all tiers + FTS search)
  */
-export async function getRelevantContext(project: Project): Promise<string> {
-  const [brief, recentRuns] = await Promise.all([
+export async function getRelevantContext(project: Project, prompt?: string): Promise<string> {
+  const [brief, recentRuns, ragContext] = await Promise.all([
     getProjectBrief(project),
     getRecentRunContext(project),
+    prompt ? getEnhancedContext(project.id, project.path, prompt) : Promise.resolve(''),
   ])
 
   let context = ''
   if (brief) context += `\n${brief}`
   if (recentRuns) context += `\n${recentRuns}`
+  if (ragContext) context += `\n${ragContext}`
   return context
 }
 
@@ -113,7 +116,8 @@ export async function extractLearnings(run: AgentRun, project: Project): Promise
 
   if (!outputs.trim()) return
 
-  const entry: KnowledgeEntry = {
+  // Store run summary
+  const runEntry: KnowledgeEntry = {
     id: crypto.randomUUID(),
     project_id: project.id,
     key: `run:${run.id}`,
@@ -131,8 +135,39 @@ export async function extractLearnings(run: AgentRun, project: Project): Promise
   }
 
   try {
-    await invoke('db_save_knowledge', { entry })
+    await invoke('db_save_knowledge', { entry: runEntry })
   } catch (err) {
-    console.error('Failed to save knowledge:', err)
+    console.error('Failed to save run knowledge:', err)
+  }
+
+  // Extract and store learnings summary from agent outputs
+  const learningsSummary = run.agents
+    .filter((a) => a.status === 'done' && a.output.length > 0)
+    .map((a) => {
+      const lastOutput = a.output.slice(-5).join('\n')
+      return `[${a.role}] ${lastOutput.slice(0, 500)}`
+    })
+    .join('\n---\n')
+
+  if (learningsSummary.trim()) {
+    const learningEntry: KnowledgeEntry = {
+      id: crypto.randomUUID(),
+      project_id: project.id,
+      key: `learning:${run.id}`,
+      value: JSON.stringify({
+        prompt: run.prompt,
+        learnings: learningsSummary.slice(0, 3000),
+        roles: run.agents.map((a) => a.role),
+        timestamp: new Date().toISOString(),
+      }),
+      source_agent: 'orchestrator',
+      created_at: new Date().toISOString(),
+    }
+
+    try {
+      await invoke('db_save_knowledge', { entry: learningEntry })
+    } catch (err) {
+      console.error('Failed to save learnings:', err)
+    }
   }
 }

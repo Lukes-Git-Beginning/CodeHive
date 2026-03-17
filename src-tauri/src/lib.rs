@@ -48,6 +48,7 @@ async fn spawn_agent(
     system_prompt: String,
     model: Option<String>,
     permission_mode: Option<String>,
+    mcp_config_path: Option<String>,
 ) -> Result<String, String> {
     // Clean up path: trim whitespace, quotes, normalize
     let clean_path = project_path.trim().trim_matches('"').trim_matches('\'').to_string();
@@ -97,6 +98,13 @@ async fn spawn_agent(
     // Permission mode for auto-accept
     if let Some(ref perm) = permission_mode {
         cmd.arg("--permission-mode").arg(perm);
+    }
+
+    // MCP server configuration
+    if let Some(ref mcp_path) = mcp_config_path {
+        if std::path::Path::new(mcp_path).exists() {
+            cmd.arg("--mcp-config").arg(mcp_path);
+        }
     }
 
     cmd.current_dir(&clean_path)
@@ -372,6 +380,42 @@ fn db_get_knowledge(state: State<'_, AppState>, project_id: String) -> Result<Ve
     state.db.get_knowledge(&project_id).map_err(|e| e.to_string())
 }
 
+// ── File Utilities ──
+
+#[tauri::command]
+fn write_temp_file(path: String, content: String) -> Result<(), String> {
+    let file_path = std::path::Path::new(&path);
+    if let Some(parent) = file_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create dir: {}", e))?;
+    }
+    std::fs::write(file_path, content).map_err(|e| format!("Failed to write file: {}", e))
+}
+
+// ── Knowledge Search & Delete ──
+
+#[tauri::command]
+fn db_search_knowledge(state: State<'_, AppState>, project_id: String, query: String, limit: Option<i32>) -> Result<Vec<DbKnowledge>, String> {
+    state.db.search_knowledge(&project_id, &query, limit.unwrap_or(5)).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_delete_knowledge(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    state.db.delete_knowledge(&id).map_err(|e| e.to_string())
+}
+
+// ── CLAUDE.md Reader ──
+
+#[tauri::command]
+fn read_claude_md(path: String) -> Result<Option<String>, String> {
+    let clean = path.trim().trim_matches('"').to_string();
+    let claude_md = std::path::Path::new(&clean).join("CLAUDE.md");
+    if claude_md.exists() {
+        std::fs::read_to_string(&claude_md).map(Some).map_err(|e| e.to_string())
+    } else {
+        Ok(None)
+    }
+}
+
 // ── Settings ──
 
 #[tauri::command]
@@ -425,9 +469,14 @@ pub fn run() {
             // Agent runs
             db_save_agent_run,
             db_list_agent_runs,
+            // File utilities
+            write_temp_file,
             // Knowledge
             db_save_knowledge,
             db_get_knowledge,
+            db_search_knowledge,
+            db_delete_knowledge,
+            read_claude_md,
             // Settings
             db_get_setting,
             db_set_setting,

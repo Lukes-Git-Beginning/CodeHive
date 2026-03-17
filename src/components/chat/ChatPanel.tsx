@@ -1,12 +1,12 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Send, User, Cpu, AlertCircle, Zap, CheckCircle, X, FileCode } from 'lucide-react'
+import { Send, User, Cpu, AlertCircle, Zap, CheckCircle, X, FileCode, ToggleLeft, ToggleRight } from 'lucide-react'
 import { useChatStore } from '../../stores/chatStore'
 import { useProjectStore } from '../../stores/projectStore'
 import { useAgentStore } from '../../stores/agentStore'
-import { orchestrate } from '../../services/orchestrator'
+import { orchestrate, directChat } from '../../services/orchestrator'
 import type { ChatMessage } from '../../types/agent'
 
 function PlanApprovalCard() {
@@ -54,6 +54,11 @@ function PlanApprovalCard() {
           >
             <FileCode className="w-3 h-3 text-text-muted shrink-0" />
             <span className="text-text-primary flex-1 truncate">{task.name}</span>
+            {task.role && (
+              <span className="font-mono text-[9px] text-text-muted bg-white/5 px-1.5 py-0.5 rounded">
+                {task.role}
+              </span>
+            )}
             <span className={`font-mono text-[10px] ${modelColors[task.model] || 'text-text-muted'}`}>
               {task.model}
             </span>
@@ -101,6 +106,8 @@ function PlanApprovalCard() {
 
 export function ChatPanel() {
   const [input, setInput] = useState('')
+  const [directMode, setDirectMode] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pendingPlan = useAgentStore((s) => s.pendingPlan)
   const { messages, isProcessing, addMessage, setProcessing } = useChatStore()
@@ -110,8 +117,17 @@ export function ChatPanel() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current
+    if (ta) {
+      ta.style.height = 'auto'
+      ta.style.height = Math.min(ta.scrollHeight, 150) + 'px'
+    }
+  }, [input])
+
+  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
+    e?.preventDefault()
     if (!input.trim() || isProcessing || !activeProject) return
 
     const userMessage: ChatMessage = {
@@ -127,7 +143,17 @@ export function ChatPanel() {
     setProcessing(true)
 
     try {
-      await orchestrate(prompt, activeProject)
+      if (directMode) {
+        addMessage({
+          id: crypto.randomUUID(),
+          role: 'system',
+          content: 'Direct Mode — Einzelagent ohne Orchestrierung.',
+          timestamp: new Date().toISOString(),
+        })
+        await directChat(prompt, activeProject)
+      } else {
+        await orchestrate(prompt, activeProject)
+      }
     } catch (err) {
       addMessage({
         id: crypto.randomUUID(),
@@ -136,6 +162,13 @@ export function ChatPanel() {
         timestamp: new Date().toISOString(),
       })
       setProcessing(false)
+    }
+  }, [input, isProcessing, activeProject, directMode, addMessage, setProcessing])
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmit()
     }
   }
 
@@ -269,32 +302,51 @@ export function ChatPanel() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSubmit} className="border-t border-border p-4">
-        <div className="flex gap-3">
-          <input
-            type="text"
+      {/* Input Area */}
+      <div className="border-t border-border p-4">
+        {/* Mode Toggle */}
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            onClick={() => setDirectMode(!directMode)}
+            className="flex items-center gap-1.5 text-[10px] font-hud tracking-wider text-text-muted hover:text-text-secondary transition-colors"
+          >
+            {directMode ? (
+              <ToggleRight className="w-4 h-4 text-cyan" />
+            ) : (
+              <ToggleLeft className="w-4 h-4 text-text-muted" />
+            )}
+            {directMode ? 'Direct Mode' : 'Orchestrator Mode'}
+          </button>
+          <span className="text-[9px] text-text-muted">
+            {directMode ? 'Einzelagent, schnell' : 'Plan → Execute → Verify'}
+          </span>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex gap-3">
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={activeProject ? 'Enter command...' : 'Select a project first'}
+            onKeyDown={handleKeyDown}
+            placeholder={activeProject ? 'Enter command... (Shift+Enter für neue Zeile)' : 'Select a project first'}
             disabled={!activeProject || isProcessing}
+            rows={1}
             className="flex-1 glass rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted
                        focus:outline-none focus:border-accent/40 focus:shadow-[0_0_15px_rgba(0,255,136,0.15)]
-                       disabled:opacity-30 transition-all font-mono"
+                       disabled:opacity-30 transition-all font-mono resize-none overflow-hidden"
           />
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             type="submit"
             disabled={!input.trim() || !activeProject || isProcessing}
-            className="bg-accent/15 border border-accent/30 text-accent px-4 py-3 rounded-xl
-                       hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,255,136,0.3)]
-                       disabled:opacity-30 disabled:hover:shadow-none transition-all"
+            className={`${directMode ? 'bg-cyan/15 border-cyan/30 text-cyan hover:bg-cyan/25 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)]' : 'bg-accent/15 border-accent/30 text-accent hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,255,136,0.3)]'} border px-4 py-3 rounded-xl
+                       disabled:opacity-30 disabled:hover:shadow-none transition-all`}
           >
             <Send className="w-5 h-5" />
           </motion.button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   )
 }

@@ -3,9 +3,12 @@ import { listen } from '@tauri-apps/api/event'
 import type { AgentInstance, AgentRun } from '../types/agent'
 import type { Project } from '../types/project'
 import { useAgentStore } from '../stores/agentStore'
-import { extractLearnings, getRelevantContext } from './knowledge'
+import { extractLearnings, getRelevantContext, getProjectBrief } from './knowledge'
 import { getSetting } from './persistence'
 import { useChatStore } from '../stores/chatStore'
+import { useNotificationStore } from '../stores/notificationStore'
+import { ROLE_PROMPTS, getRoleForTask } from './agentRoles'
+import { generateMcpConfig } from './mcpConfig'
 
 // ── Types ──
 
@@ -16,6 +19,7 @@ interface TaskSpec {
   name: string
   complexity: number // 1-10
   model: ModelTier
+  role?: string
   files: {
     modify: string[]
     create: string[]
@@ -86,6 +90,7 @@ Für jeden Task definierst du:
 - id: Eindeutige ID (task-01, task-02, etc.)
 - name: Kurzer beschreibender Name
 - complexity: 1-10 (1=trivial, 10=sehr komplex)
+- role: Die Spezialisierung des Agenten (frontend, backend, testing, devops, security, architect)
 - files.modify: Dateien die geändert werden
 - files.create: Neue Dateien
 - files.read: Dateien die gelesen werden müssen
@@ -100,11 +105,12 @@ Regeln:
 - Nutze das Wissen über den Tech-Stack für passende verify-Befehle
 - Wenn die Aufgabe einfach ist, erstelle nur 1-2 Tasks
 - Bei komplexen Aufgaben: max 6-8 Tasks
+- Wähle die passende Rolle: frontend für UI/React/CSS, backend für APIs/DB/Logik, testing für Tests, devops für CI/CD/Docker, security für Audits, architect für System-Design
 
 Antworte als JSON:
 {
   "goals": ["Ziel 1", "Ziel 2"],
-  "tasks": [{ "id": "task-01", "name": "...", "complexity": 5, "files": { "modify": [], "create": [], "read": [] }, "action": "...", "verify": "...", "done": "...", "dependsOn": [] }]
+  "tasks": [{ "id": "task-01", "name": "...", "complexity": 5, "role": "backend", "files": { "modify": [], "create": [], "read": [] }, "action": "...", "verify": "...", "done": "...", "dependsOn": [] }]
 }`
 
 const VERIFIER_SYSTEM_PROMPT = `Du bist ein Quality-Assurance-Spezialist mit 1M Context Window.
@@ -125,17 +131,17 @@ Antworte als JSON:
 
 let outputUnlisten: (() => void) | null = null
 let statusUnlisten: (() => void) | null = null
-const agentCompletionCallbacks = new Map<string, () => void>()
+const agentCompletionCallbacks = new Map<string, (status: string) => void>()
+
+const AGENT_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes default
 
 function setupEventListeners() {
-  // Returns a promise that resolves when listeners are set up
   return Promise.all([
     outputUnlisten
       ? Promise.resolve()
       : listen<{ agent_id: string; line: string }>('agent-output', (event) => {
           const { agent_id, line } = event.payload
           const agentStore = useAgentStore.getState()
-          const chatStore = useChatStore.getState()
 
           try {
             const parsed = JSON.parse(line)
@@ -146,7 +152,6 @@ function setupEventListeners() {
                 }
               }
             } else if (parsed.type === 'result' && parsed.result) {
-              // Only append to agent output — chat messages are posted by orchestrator flow
               agentStore.appendAgentOutput(agent_id, parsed.result)
             }
           } catch {
@@ -174,7 +179,7 @@ function setupEventListeners() {
           // Resolve completion promise for this agent
           const callback = agentCompletionCallbacks.get(agent_id)
           if (callback && (status === 'done' || status === 'error')) {
-            callback()
+            callback(status)
             agentCompletionCallbacks.delete(agent_id)
           }
         }).then((unlisten) => {
@@ -183,11 +188,41 @@ function setupEventListeners() {
   ])
 }
 
-function waitForAgent(agentId: string): Promise<void> {
-  return new Promise((resolve) => {
-    agentCompletionCallbacks.set(agentId, resolve)
+function cleanupEventListeners() {
+  outputUnlisten?.()
+  statusUnlisten?.()
+  outputUnlisten = null
+  statusUnlisten = null
+  // Clear any orphaned callbacks
+  agentCompletionCallbacks.clear()
+}
+
+function waitForAgent(agentId: string, timeoutMs = AGENT_TIMEOUT_MS): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      agentCompletionCallbacks.delete(agentId)
+      const agentStore = useAgentStore.getState()
+      agentStore.updateAgent(agentId, {
+        status: 'error',
+        finishedAt: new Date().toISOString(),
+      })
+      useNotificationStore.getState().addNotification(
+        'error',
+        `Agent ${agentId.slice(0, 8)} Timeout nach ${Math.round(timeoutMs / 1000)}s`
+      )
+      reject(new Error(`Agent ${agentId} timed out after ${timeoutMs / 1000}s`))
+    }, timeoutMs)
+
+    agentCompletionCallbacks.set(agentId, (status) => {
+      clearTimeout(timer)
+      resolve(status)
+    })
   })
 }
+
+// ── Orchestration Lock ──
+
+let orchestrationInProgress = false
 
 // ── Spawn Helper ──
 
@@ -197,7 +232,8 @@ async function spawnAndWait(
   prompt: string,
   projectPath: string,
   systemPrompt: string,
-  model: ModelTier = 'sonnet'
+  model: ModelTier = 'sonnet',
+  mcpConfigPath?: string | null
 ): Promise<string> {
   const agentStore = useAgentStore.getState()
 
@@ -225,6 +261,7 @@ async function spawnAndWait(
     systemPrompt,
     model: getModelFlag(model),
     permissionMode,
+    mcpConfigPath: mcpConfigPath || undefined,
   })
 
   await completionPromise
@@ -248,8 +285,8 @@ async function planTask(prompt: string, project: Project): Promise<ExecutionPlan
     timestamp: new Date().toISOString(),
   })
 
-  // Inject knowledge base context
-  const kbContext = await getRelevantContext(project)
+  // Inject knowledge base context (with FTS search using the user's prompt)
+  const kbContext = await getRelevantContext(project, prompt)
 
   const plannerPrompt = `Projekt: ${project.name}
 Pfad: ${project.path}
@@ -272,16 +309,16 @@ Analysiere die Aufgabe und erstelle einen detaillierten Task-Plan als JSON.`
 
   // Parse the plan from output
   try {
-    // Find JSON in output (might have extra text around it)
     const jsonMatch = output.match(/\{[\s\S]*"tasks"[\s\S]*\}/)
     if (!jsonMatch) throw new Error('No JSON found in planner output')
 
     const plan = JSON.parse(jsonMatch[0]) as { goals: string[]; tasks: TaskSpec[] }
 
-    // Assign models based on complexity
+    // Assign models based on complexity, infer role if missing
     for (const task of plan.tasks) {
       task.model = getModelForComplexity(task.complexity)
       if (!task.dependsOn) task.dependsOn = []
+      if (!task.role) task.role = getRoleForTask(task.action, task.name)
     }
 
     const waves = buildWaves(plan.tasks)
@@ -289,7 +326,7 @@ Analysiere die Aufgabe und erstelle einen detaillierten Task-Plan als JSON.`
     chatStore.addMessage({
       id: crypto.randomUUID(),
       role: 'orchestrator',
-      content: `Plan erstellt: ${plan.tasks.length} Tasks in ${waves.length} Wellen.\n${plan.tasks.map((t) => `  - [${t.model}] ${t.name} (Komplexität: ${t.complexity}/10)`).join('\n')}`,
+      content: `Plan erstellt: ${plan.tasks.length} Tasks in ${waves.length} Wellen.\n${plan.tasks.map((t) => `  - [${t.model}/${t.role || 'backend'}] ${t.name} (Komplexität: ${t.complexity}/10)`).join('\n')}`,
       timestamp: new Date().toISOString(),
     })
 
@@ -317,6 +354,7 @@ Analysiere die Aufgabe und erstelle einen detaillierten Task-Plan als JSON.`
       name: prompt.slice(0, 50),
       complexity: 7,
       model: 'sonnet',
+      role: 'backend',
       files: { modify: [], create: [], read: [] },
       action: prompt,
       verify: '',
@@ -340,6 +378,10 @@ async function executeWaves(plan: ExecutionPlan, project: Project): Promise<void
   agentStore.setPhase('executing')
   agentStore.setWaveInfo(0, plan.waves.length)
 
+  // Get project context and MCP config for executor agents
+  const brief = await getProjectBrief(project)
+  const mcpConfigPath = await generateMcpConfig(project)
+
   for (let i = 0; i < plan.waves.length; i++) {
     useAgentStore.getState().setWaveInfo(i + 1, plan.waves.length)
     const wave = plan.waves[i]
@@ -355,6 +397,9 @@ async function executeWaves(plan: ExecutionPlan, project: Project): Promise<void
     await Promise.all(
       wave.map(async (task) => {
         const agentId = crypto.randomUUID()
+        const role = task.role || getRoleForTask(task.action, task.name)
+        const rolePrompt = ROLE_PROMPTS[role as keyof typeof ROLE_PROMPTS] || ROLE_PROMPTS.backend
+
         const taskPrompt = `Aufgabe: ${task.name}
 
 ${task.action}
@@ -368,13 +413,15 @@ ${task.verify ? `Verifikation: ${task.verify}` : ''}
 
 Arbeite fokussiert und effizient. Ändere nur was nötig ist.`
 
-        const systemPrompt = `Du bist ein Coding-Agent. Führe die Aufgabe präzise aus.
-Ändere nur die Dateien die in der Aufgabe angegeben sind.
-Wenn ein Verify-Befehl angegeben ist, führe ihn am Ende aus.
-Sei effizient — keine unnötigen Änderungen.`
+        // Combine role-specific prompt with project context
+        const systemPrompt = `${rolePrompt}
+
+Projekt-Kontext:
+${brief}
+Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}`
 
         try {
-          await spawnAndWait(agentId, task.model === 'opus' ? 'architect' : 'backend', taskPrompt, project.path, systemPrompt, task.model)
+          await spawnAndWait(agentId, role, taskPrompt, project.path, systemPrompt, task.model, mcpConfigPath)
         } catch (err) {
           const agentStore = useAgentStore.getState()
           agentStore.updateAgent(agentId, { status: 'error' })
@@ -431,7 +478,6 @@ Prüfe goal-backward: Sind alle Ziele erreicht? Was fehlt?`
       })
     }
   } catch {
-    // Just show raw output if parsing fails
     chatStore.addMessage({
       id: crypto.randomUUID(),
       role: 'orchestrator',
@@ -444,6 +490,16 @@ Prüfe goal-backward: Sind alle Ziele erreicht? Was fehlt?`
 // ── Main Orchestration ──
 
 export async function orchestrate(prompt: string, project: Project): Promise<void> {
+  // Prevent concurrent orchestrations
+  if (orchestrationInProgress) {
+    useNotificationStore.getState().addNotification(
+      'warning',
+      'Orchestrierung läuft bereits. Bitte warten.'
+    )
+    return
+  }
+
+  orchestrationInProgress = true
   const agentStore = useAgentStore.getState()
   const chatStore = useChatStore.getState()
 
@@ -468,7 +524,6 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
     // Plan Mode: Show plan and wait for approval
     const planModeEnabled = (await getSetting('plan_mode')) !== 'false'
     if (planModeEnabled && plan.tasks.length > 0) {
-      // Show plan to user and wait for approval
       await new Promise<void>((resolve) => {
         useAgentStore.getState().setPendingPlan(
           {
@@ -478,6 +533,7 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
               name: t.name,
               complexity: t.complexity,
               model: t.model,
+              role: t.role,
             })),
             waveCount: plan.waves.length,
           },
@@ -485,7 +541,7 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
         )
       })
 
-      // Check if plan was rejected (phase will be 'idle')
+      // Check if plan was rejected
       if (useAgentStore.getState().phase === 'idle') {
         chatStore.setProcessing(false)
         return
@@ -498,8 +554,7 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
     // Phase 3: Verify
     await verifyWork(plan, project)
 
-    // Done
-    // Extract learnings before finishing
+    // Done — extract learnings
     const finishedRun = useAgentStore.getState().currentRun
     if (finishedRun) {
       await extractLearnings(finishedRun, project)
@@ -520,8 +575,79 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
       timestamp: new Date().toISOString(),
     })
     agentStore.finishRun(`Fehler: ${err}`)
+    useNotificationStore.getState().addNotification('error', `Orchestrierung fehlgeschlagen: ${err}`)
   } finally {
     chatStore.setProcessing(false)
+    orchestrationInProgress = false
+    cleanupEventListeners()
+  }
+}
+
+// ── Direct Chat Mode (single agent, no orchestration overhead) ──
+
+export async function directChat(prompt: string, project: Project): Promise<void> {
+  if (orchestrationInProgress) {
+    useNotificationStore.getState().addNotification(
+      'warning',
+      'Agent läuft bereits. Bitte warten.'
+    )
+    return
+  }
+
+  orchestrationInProgress = true
+  const agentStore = useAgentStore.getState()
+  const chatStore = useChatStore.getState()
+
+  await setupEventListeners()
+
+  const run: AgentRun = {
+    id: crypto.randomUUID(),
+    projectId: project.id,
+    agents: [],
+    prompt,
+    status: 'running',
+    startedAt: new Date().toISOString(),
+  }
+  agentStore.startRun(run)
+  agentStore.setPhase('executing')
+
+  try {
+    const brief = await getProjectBrief(project)
+    const mcpConfigPath = await generateMcpConfig(project)
+    const agentId = crypto.randomUUID()
+
+    const systemPrompt = `Du bist ein erfahrener Software-Entwickler. Arbeite direkt und effizient.
+
+Projekt-Kontext:
+${brief}
+Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}`
+
+    await spawnAndWait(agentId, 'architect', prompt, project.path, systemPrompt, 'sonnet', mcpConfigPath)
+
+    const finishedRun = useAgentStore.getState().currentRun
+    if (finishedRun) {
+      await extractLearnings(finishedRun, project)
+    }
+
+    agentStore.finishRun('Direct Chat abgeschlossen')
+    chatStore.addMessage({
+      id: crypto.randomUUID(),
+      role: 'orchestrator',
+      content: 'Agent fertig.',
+      timestamp: new Date().toISOString(),
+    })
+  } catch (err) {
+    chatStore.addMessage({
+      id: crypto.randomUUID(),
+      role: 'system',
+      content: `Agent fehlgeschlagen: ${err}`,
+      timestamp: new Date().toISOString(),
+    })
+    agentStore.finishRun(`Fehler: ${err}`)
+  } finally {
+    chatStore.setProcessing(false)
+    orchestrationInProgress = false
+    cleanupEventListeners()
   }
 }
 

@@ -1,44 +1,36 @@
-import { useState, useEffect, Component, type ReactNode, type ErrorInfo } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Sidebar } from './components/layout/Sidebar'
 import { StatusBar } from './components/layout/StatusBar'
 import { ChatPanel } from './components/chat/ChatPanel'
 import { AgentMonitor } from './components/agents/AgentMonitor'
-import { OfficeView } from './components/office/OfficeView'
 import { ProjectSelector } from './components/projects/ProjectSelector'
-import { RoadmapView } from './components/roadmap/RoadmapView'
 import { SettingsPanel } from './components/settings/SettingsPanel'
 import { ProjectDashboard } from './components/dashboard/ProjectDashboard'
+import { ErrorBoundary } from './components/ui/ErrorBoundary'
+import { ToastContainer } from './components/ui/Toast'
 import { useProjectStore } from './stores/projectStore'
 import { useAgentStore } from './stores/agentStore'
 import { ScanLine } from './components/ui/ScanLine'
-import { Monitor, Gamepad2, MessageSquare, LayoutDashboard, Map, AlertTriangle } from 'lucide-react'
+import { Monitor, Gamepad2, MessageSquare, LayoutDashboard, Map, Brain } from 'lucide-react'
 
-type MainTab = 'dashboard' | 'chat' | 'office' | 'roadmap'
+// Lazy-loaded tabs for performance
+const OfficeView = lazy(() => import('./components/office/OfficeView').then(m => ({ default: m.OfficeView })))
+const RoadmapView = lazy(() => import('./components/roadmap/RoadmapView').then(m => ({ default: m.RoadmapView })))
+const KnowledgePanel = lazy(() => import('./components/knowledge/KnowledgePanel').then(m => ({ default: m.KnowledgePanel })))
 
-// ── Error Boundary ──
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null }
-  static getDerivedStateFromError(error: Error) { return { error } }
-  componentDidCatch(error: Error, info: ErrorInfo) { console.error('UI Error:', error, info) }
-  render() {
-    if (this.state.error) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-          <AlertTriangle className="w-10 h-10 text-danger mb-3" />
-          <p className="font-hud text-xs text-danger mb-2">System Error</p>
-          <p className="text-xs text-text-muted max-w-md font-mono mb-4">{this.state.error.message}</p>
-          <button
-            onClick={() => this.setState({ error: null })}
-            className="glass neon-hover rounded-lg px-4 py-2 text-xs text-accent font-hud"
-          >
-            Retry
-          </button>
-        </div>
-      )
-    }
-    return this.props.children
-  }
+type MainTab = 'dashboard' | 'chat' | 'knowledge' | 'office' | 'roadmap'
+
+function TabLoadingFallback() {
+  return (
+    <div className="flex items-center justify-center h-full">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+        className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full"
+      />
+    </div>
+  )
 }
 
 function App() {
@@ -81,6 +73,7 @@ function App() {
           <main className="flex-1"><ProjectSelector onProjectSelect={() => setMainTab('dashboard')} /></main>
           <StatusBar />
         </div>
+        <ToastContainer />
       </div>
     )
   }
@@ -88,6 +81,7 @@ function App() {
   const mainTabs: { id: MainTab; icon: typeof MessageSquare; label: string }[] = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { id: 'chat', icon: MessageSquare, label: 'Chat' },
+    { id: 'knowledge', icon: Brain, label: 'Knowledge' },
     { id: 'office', icon: Gamepad2, label: 'Office' },
     { id: 'roadmap', icon: Map, label: 'Roadmap' },
   ]
@@ -124,14 +118,39 @@ function App() {
               ))}
             </div>
 
-            {/* Tab Content */}
+            {/* Tab Content — each tab has its own ErrorBoundary */}
             <div className="flex-1 min-h-0">
-              <ErrorBoundary>
-                {mainTab === 'chat' && <ChatPanel />}
-                {mainTab === 'dashboard' && <ProjectDashboard />}
-                {mainTab === 'office' && <OfficeView />}
-                {mainTab === 'roadmap' && <RoadmapView />}
-              </ErrorBoundary>
+              {mainTab === 'chat' && (
+                <ErrorBoundary label="Chat">
+                  <ChatPanel />
+                </ErrorBoundary>
+              )}
+              {mainTab === 'dashboard' && (
+                <ErrorBoundary label="Dashboard">
+                  <ProjectDashboard />
+                </ErrorBoundary>
+              )}
+              {mainTab === 'knowledge' && (
+                <ErrorBoundary label="Knowledge">
+                  <Suspense fallback={<TabLoadingFallback />}>
+                    <KnowledgePanel />
+                  </Suspense>
+                </ErrorBoundary>
+              )}
+              {mainTab === 'office' && (
+                <ErrorBoundary label="Office">
+                  <Suspense fallback={<TabLoadingFallback />}>
+                    <OfficeView />
+                  </Suspense>
+                </ErrorBoundary>
+              )}
+              {mainTab === 'roadmap' && (
+                <ErrorBoundary label="Roadmap">
+                  <Suspense fallback={<TabLoadingFallback />}>
+                    <RoadmapView />
+                  </Suspense>
+                </ErrorBoundary>
+              )}
             </div>
           </div>
 
@@ -143,7 +162,7 @@ function App() {
               <span className="font-hud text-[10px] text-accent">Agent Monitor</span>
             </div>
             <div className="flex-1 min-h-0">
-              <ErrorBoundary>
+              <ErrorBoundary label="Agent Monitor">
                 <AgentMonitor />
               </ErrorBoundary>
             </div>
@@ -175,6 +194,9 @@ function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Toast Notifications */}
+      <ToastContainer />
     </div>
   )
 }
