@@ -1,8 +1,13 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, CheckCircle, Clock, Loader2, ChevronRight } from 'lucide-react'
+import { Plus, CheckCircle, Clock, Loader2, ChevronRight, Play, Trash2 } from 'lucide-react'
 import { useProjectStore } from '../../stores/projectStore'
+import { useAgentStore } from '../../stores/agentStore'
+import { useChatStore } from '../../stores/chatStore'
+import { orchestrate } from '../../services/orchestrator'
+import { useNotificationStore } from '../../stores/notificationStore'
 import type { Task } from '../../types/project'
+import type { ChatMessage } from '../../types/agent'
 
 const columns = [
   { id: 'planned' as const, label: 'Planned', icon: Clock, color: 'text-text-muted', borderColor: 'border-white/5' },
@@ -11,7 +16,11 @@ const columns = [
 ]
 
 export function RoadmapView() {
-  const { tasks, activeProjectId, addTask, updateTask } = useProjectStore()
+  const { tasks, activeProjectId, addTask, updateTask, removeTask } = useProjectStore()
+  const activeProject = useProjectStore((s) => s.getActiveProject())
+  const phase = useAgentStore((s) => s.phase)
+  const isRunning = phase !== 'idle' && phase !== 'done'
+  const { addMessage, setProcessing } = useChatStore()
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [addingToColumn, setAddingToColumn] = useState<string | null>(null)
 
@@ -39,10 +48,50 @@ export function RoadmapView() {
     })
   }
 
+  const handleExecuteTask = async (task: Task) => {
+    if (!activeProject || isRunning) {
+      useNotificationStore.getState().addNotification('warning', 'Metis arbeitet bereits an einer Aufgabe.')
+      return
+    }
+
+    // Mark as in_progress
+    updateTask(task.id, { status: 'in_progress' })
+
+    // Build prompt from task
+    const prompt = task.description
+      ? `${task.title}\n\n${task.description}`
+      : task.title
+
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      content: `[Roadmap-Task] ${prompt}`,
+      timestamp: new Date().toISOString(),
+    }
+    addMessage(userMessage)
+    setProcessing(true)
+
+    try {
+      await orchestrate(prompt, activeProject)
+      // Mark as done after successful completion
+      updateTask(task.id, { status: 'done', completedAt: new Date().toISOString() })
+    } catch (err) {
+      addMessage({
+        id: crypto.randomUUID(),
+        role: 'system',
+        content: `Task fehlgeschlagen: ${String(err)}`,
+        timestamp: new Date().toISOString(),
+      })
+      // Revert to planned on failure
+      updateTask(task.id, { status: 'planned' })
+      setProcessing(false)
+    }
+  }
+
   if (!activeProjectId) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-sm text-text-muted font-mono">Select a project first.</p>
+        <p className="text-sm text-text-muted font-mono">Wähle zuerst ein Projekt.</p>
       </div>
     )
   }
@@ -67,14 +116,16 @@ export function RoadmapView() {
                     {colTasks.length}
                   </span>
                 </div>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setAddingToColumn(col.id)}
-                  className="p-1 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </motion.button>
+                {col.id === 'planned' && (
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setAddingToColumn(col.id)}
+                    className="p-1 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </motion.button>
+                )}
               </div>
 
               {/* Tasks */}
@@ -96,7 +147,7 @@ export function RoadmapView() {
                             if (e.key === 'Enter') handleAddTask(col.id)
                             if (e.key === 'Escape') setAddingToColumn(null)
                           }}
-                          placeholder="Task title..."
+                          placeholder="Task-Titel..."
                           autoFocus
                           className="w-full bg-transparent text-xs text-text-primary placeholder-text-muted focus:outline-none font-mono"
                         />
@@ -105,13 +156,13 @@ export function RoadmapView() {
                             onClick={() => handleAddTask(col.id)}
                             className="text-[10px] font-hud bg-accent/20 text-accent px-2 py-0.5 rounded"
                           >
-                            Add
+                            Hinzufügen
                           </button>
                           <button
                             onClick={() => setAddingToColumn(null)}
                             className="text-[10px] text-text-muted px-2 py-0.5"
                           >
-                            Cancel
+                            Abbrechen
                           </button>
                         </div>
                       </div>
@@ -121,7 +172,7 @@ export function RoadmapView() {
 
                 {colTasks.length === 0 && addingToColumn !== col.id && (
                   <div className="flex items-center justify-center h-20 text-text-muted">
-                    <p className="text-[10px] font-mono">Empty</p>
+                    <p className="text-[10px] font-mono">Leer</p>
                   </div>
                 )}
 
@@ -133,9 +184,27 @@ export function RoadmapView() {
                     animate={{ opacity: 1, y: 0 }}
                     className="glass neon-hover rounded-lg p-3 group"
                   >
-                    <p className="text-xs text-text-primary mb-2">{task.title}</p>
+                    <p className="text-xs text-text-primary mb-1.5">{task.title}</p>
 
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {task.description && (
+                      <p className="text-[10px] text-text-muted mb-2 line-clamp-2">{task.description}</p>
+                    )}
+
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Execute button (only for planned tasks) */}
+                      {col.id === 'planned' && (
+                        <button
+                          onClick={() => handleExecuteTask(task)}
+                          disabled={isRunning}
+                          className="text-[9px] font-hud text-accent bg-accent/10 hover:bg-accent/20 px-2 py-0.5 rounded flex items-center gap-0.5 disabled:opacity-30"
+                          title="Metis ausführen lassen"
+                        >
+                          <Play className="w-2.5 h-2.5" />
+                          Ausführen
+                        </button>
+                      )}
+
+                      {/* Move buttons */}
                       {columns
                         .filter((c) => c.id !== col.id)
                         .map((c) => (
@@ -148,6 +217,15 @@ export function RoadmapView() {
                             {c.label}
                           </button>
                         ))}
+
+                      {/* Delete */}
+                      <button
+                        onClick={() => removeTask(task.id)}
+                        className="text-[9px] text-text-muted hover:text-danger px-1 py-0.5 rounded ml-auto"
+                        title="Löschen"
+                      >
+                        <Trash2 className="w-2.5 h-2.5" />
+                      </button>
                     </div>
                   </motion.div>
                 ))}
