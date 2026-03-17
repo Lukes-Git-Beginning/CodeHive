@@ -65,7 +65,7 @@ export function Omnibox() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`w-full max-w-3xl glass transition-all duration-300 rounded-2xl p-2 ${
+      className={`w-full max-w-3xl glass transition-all duration-300 rounded-2xl p-3 ${
         isFocused ? 'ring-1 ring-accent shadow-[0_0_15px_rgba(0,255,136,0.15)]' : ''
       }`}
     >
@@ -85,7 +85,7 @@ export function Omnibox() {
                 : 'Sprich direkt mit einem Agenten...'
           }
           disabled={!activeProject || isProcessing}
-          className="w-full bg-transparent text-text-primary placeholder:text-text-muted outline-none resize-none font-mono p-3 min-h-[56px] overflow-hidden disabled:opacity-30"
+          className="w-full bg-transparent text-text-primary placeholder:text-text-muted outline-none resize-none font-mono px-4 py-3.5 min-h-[56px] overflow-hidden disabled:opacity-30"
           rows={1}
         />
 

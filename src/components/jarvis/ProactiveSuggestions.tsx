@@ -54,7 +54,7 @@ export function ProactiveSuggestions() {
   if (suggestions.length === 0 || isProcessing) return null
 
   return (
-    <div className="w-full max-w-lg flex flex-col gap-3 items-center mb-6">
+    <div className="w-full max-w-lg flex flex-col gap-3 items-center mb-4">
       <AnimatePresence>
         {suggestions.slice(0, 2).map((suggestion) => (
           <motion.div

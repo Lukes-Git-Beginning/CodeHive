@@ -103,9 +103,12 @@ function App() {
       />
 
       {/* Main Interaction Area */}
-      <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-6 pt-16 pb-12">
+      <main className="w-full h-full flex flex-col items-center relative z-20 px-8 pt-16 pb-10 overflow-hidden">
         <ErrorBoundary label="Jarvis">
-          <div className="relative flex flex-col items-center justify-center w-full max-w-4xl">
+          {/* Top spacer — pushes content down but allows scroll */}
+          <div className="flex-1 min-h-8" />
+
+          <div className="relative flex flex-col items-center w-full max-w-4xl shrink-0">
             {/* Proactive Suggestions */}
             <ProactiveSuggestions />
 
@@ -119,16 +122,16 @@ function App() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="w-full max-w-2xl glass-accent rounded-xl p-4 mb-4"
+                  className="w-full max-w-2xl glass-accent rounded-xl p-5 mb-4"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-hud text-[10px] text-accent">
                       {pendingPlan.tasks.length} Tasks · {pendingPlan.waveCount} Wellen
                     </span>
                   </div>
-                  <div className="space-y-1 mb-4">
+                  <div className="space-y-1.5 mb-4 max-h-40 overflow-y-auto">
                     {pendingPlan.tasks.map((task) => (
-                      <div key={task.id} className="flex items-center gap-2 text-[10px] glass rounded-md px-2.5 py-1.5">
+                      <div key={task.id} className="flex items-center gap-2 text-[10px] glass rounded-md px-3 py-2">
                         <span className="text-text-primary flex-1 truncate">{task.name}</span>
                         {task.role && (
                           <span className="font-mono text-[8px] text-text-muted bg-bg-surface px-1 rounded">{task.role}</span>

@@ -57,7 +57,7 @@ export function ConversationStream() {
             exit={{ height: 0, opacity: 0 }}
             className="w-full overflow-hidden"
           >
-            <div ref={scrollRef} className="flex flex-col gap-3 max-h-[40vh] overflow-y-auto pr-2 pb-4">
+            <div ref={scrollRef} className="flex flex-col gap-4 max-h-[30vh] overflow-y-auto pr-2 pb-4">
               {messages.map((msg) => {
                 const config = ROLE_CONFIG[msg.role] || ROLE_CONFIG.system
                 const Icon = config.icon
@@ -70,7 +70,7 @@ export function ConversationStream() {
                         <Icon className={`w-3 h-3 ${config.color}`} />
                       </div>
                     )}
-                    <div className={`glass px-3.5 py-2.5 rounded-xl max-w-[80%] ${
+                    <div className={`glass px-5 py-3.5 rounded-xl max-w-[80%] ${
                       isUser ? 'bg-cyan/5 border-cyan/20' : ''
                     }`}>
                       <div className="flex items-center gap-2 mb-1">
