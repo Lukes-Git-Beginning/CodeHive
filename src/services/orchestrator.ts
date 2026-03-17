@@ -472,7 +472,7 @@ Prüfe goal-backward: Sind alle Ziele erreicht? Was fehlt?`
     chatStore.addMessage({
       id: crypto.randomUUID(),
       role: 'orchestrator',
-      content: `Verifikation abgeschlossen. Ergebnisse im Agent Monitor.`,
+      content: `Verifikation abgeschlossen. Details im Mind Palace (Brain-Icon oben rechts).`,
       timestamp: new Date().toISOString(),
     })
   }
