@@ -103,12 +103,9 @@ function App() {
       />
 
       {/* Main Interaction Area */}
-      <main className="w-full h-full flex flex-col items-center relative z-20 px-8 pt-16 pb-10 overflow-hidden">
+      <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-8 pt-16 pb-10 overflow-y-auto">
         <ErrorBoundary label="Jarvis">
-          {/* Top spacer — pushes content down but allows scroll */}
-          <div className="flex-1 min-h-8" />
-
-          <div className="relative flex flex-col items-center w-full max-w-4xl shrink-0">
+          <div className="relative flex flex-col items-center w-full max-w-4xl">
             {/* Proactive Suggestions */}
             <ProactiveSuggestions />
 

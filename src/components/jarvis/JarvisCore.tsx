@@ -54,7 +54,7 @@ export function JarvisCore() {
   const animation = ANIMATION_VARIANTS[phase] || ANIMATION_VARIANTS.idle
 
   return (
-    <div className="relative flex items-center justify-center w-64 h-64 mb-8">
+    <div className="relative flex items-center justify-center w-52 h-52 mb-6 shrink-0">
       {/* Outer ambient glow */}
       <motion.div
         animate={animation}
