@@ -177,6 +177,22 @@ const MIGRATIONS: &[Migration] = &[
             END;
         ",
     },
+    Migration {
+        version: 4,
+        description: "Add conversations table for persistent chat memory",
+        sql: "
+            CREATE TABLE IF NOT EXISTS conversations (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                role TEXT NOT NULL,
+                agent_role TEXT,
+                content TEXT NOT NULL,
+                timestamp TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id, timestamp);
+        ",
+    },
 ];
 
 impl Database {
@@ -465,6 +481,43 @@ impl Database {
             "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
             params![key, value],
         )?;
+        Ok(())
+    }
+
+    // ── Conversations ──
+
+    pub fn save_message(&self, id: &str, project_id: &str, role: &str, agent_role: Option<&str>, content: &str, timestamp: &str) -> Result<()> {
+        let conn = lock_conn(&self.conn)?;
+        conn.execute(
+            "INSERT OR REPLACE INTO conversations (id, project_id, role, agent_role, content, timestamp)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![id, project_id, role, agent_role, content, timestamp],
+        )?;
+        Ok(())
+    }
+
+    pub fn load_messages(&self, project_id: &str, limit: i32) -> Result<Vec<(String, String, String, Option<String>, String, String)>> {
+        let conn = lock_conn(&self.conn)?;
+        let mut stmt = conn.prepare(
+            "SELECT id, project_id, role, agent_role, content, timestamp
+             FROM conversations WHERE project_id = ?1 ORDER BY timestamp ASC LIMIT ?2",
+        )?;
+        let rows = stmt.query_map(params![project_id, limit], |row| {
+            Ok((
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?,
+                row.get(5)?,
+            ))
+        })?;
+        rows.collect()
+    }
+
+    pub fn clear_messages(&self, project_id: &str) -> Result<()> {
+        let conn = lock_conn(&self.conn)?;
+        conn.execute("DELETE FROM conversations WHERE project_id = ?1", params![project_id])?;
         Ok(())
     }
 }

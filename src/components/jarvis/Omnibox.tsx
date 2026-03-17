@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Send, Zap, GitMerge } from 'lucide-react'
+import { Send, Zap, GitMerge, Camera } from 'lucide-react'
 import { orchestrate, directChat } from '../../services/orchestrator'
+import { captureAndAnalyze } from '../../services/vision'
 import { useProjectStore } from '../../stores/projectStore'
 import { useAgentStore } from '../../stores/agentStore'
 import { useChatStore } from '../../stores/chatStore'
@@ -125,6 +126,14 @@ export function Omnibox() {
                 {phase === 'planning' ? 'Planung...' : phase === 'executing' ? 'Ausführung...' : phase === 'verifying' ? 'Verifikation...' : phase === 'awaiting_approval' ? 'Warte auf OK...' : 'Arbeite...'}
               </span>
             )}
+            <button
+              onClick={() => captureAndAnalyze(input.trim() || undefined)}
+              disabled={!activeProject || isProcessing}
+              className="p-2 rounded-lg bg-bg-surface text-text-muted hover:text-warning hover:bg-bg-elevated transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Screenshot aufnehmen + analysieren (Ctrl+Shift+S)"
+            >
+              <Camera className="w-4 h-4" />
+            </button>
             <button
               onClick={handleSubmit}
               disabled={!input.trim() || !activeProject || isProcessing}

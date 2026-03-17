@@ -6,6 +6,8 @@ use std::collections::HashMap;
 use std::process::Stdio;
 use std::sync::Arc;
 use tauri::{Emitter, Manager, State};
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::TrayIconBuilder;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::Mutex;
@@ -422,6 +424,62 @@ fn read_claude_md(path: String) -> Result<Option<String>, String> {
     }
 }
 
+// ── Screenshot Capture ──
+
+#[tauri::command]
+fn capture_screenshot(app: tauri::AppHandle) -> Result<String, String> {
+    let screens = screenshots::Screen::all().map_err(|e| format!("Failed to list screens: {}", e))?;
+    let screen = screens.first().ok_or("No screen found")?;
+    let image = screen.capture().map_err(|e| format!("Capture failed: {}", e))?;
+
+    // Save to temp file
+    let data_dir = app.path().app_data_dir().map_err(|e| format!("No app dir: {}", e))?;
+    let screenshot_path = data_dir.join("screenshot.png");
+    image.save(&screenshot_path).map_err(|e| format!("Save failed: {}", e))?;
+
+    Ok(screenshot_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+fn screenshot_to_base64(app: tauri::AppHandle) -> Result<String, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| format!("No app dir: {}", e))?;
+    let screenshot_path = data_dir.join("screenshot.png");
+    let bytes = std::fs::read(&screenshot_path).map_err(|e| format!("Read failed: {}", e))?;
+    use base64::Engine;
+    Ok(base64::engine::general_purpose::STANDARD.encode(&bytes))
+}
+
+// ── Conversations ──
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DbMessage {
+    id: String,
+    project_id: String,
+    role: String,
+    agent_role: Option<String>,
+    content: String,
+    timestamp: String,
+}
+
+#[tauri::command]
+fn db_save_message(state: State<'_, AppState>, msg: DbMessage) -> Result<(), String> {
+    state.db.save_message(&msg.id, &msg.project_id, &msg.role, msg.agent_role.as_deref(), &msg.content, &msg.timestamp)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_load_messages(state: State<'_, AppState>, project_id: String, limit: Option<i32>) -> Result<Vec<DbMessage>, String> {
+    let rows = state.db.load_messages(&project_id, limit.unwrap_or(100)).map_err(|e| e.to_string())?;
+    Ok(rows.into_iter().map(|(id, project_id, role, agent_role, content, timestamp)| {
+        DbMessage { id, project_id, role, agent_role, content, timestamp }
+    }).collect())
+}
+
+#[tauri::command]
+fn db_clear_messages(state: State<'_, AppState>, project_id: String) -> Result<(), String> {
+    state.db.clear_messages(&project_id).map_err(|e| e.to_string())
+}
+
 // ── Settings ──
 
 #[tauri::command]
@@ -449,6 +507,39 @@ pub fn run() {
                 running_agents: Arc::new(Mutex::new(HashMap::new())),
                 db,
             });
+
+            // System Tray
+            let show_item = MenuItem::with_id(app, "show", "Metis öffnen", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Beenden", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+
+            let _tray = TrayIconBuilder::new()
+                .tooltip("Metis — AI Assistant")
+                .menu(&menu)
+                .on_menu_event(|app, event| {
+                    match event.id.as_ref() {
+                        "show" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::Click { .. } = event {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
 
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -485,6 +576,13 @@ pub fn run() {
             db_search_knowledge,
             db_delete_knowledge,
             read_claude_md,
+            // Screenshot
+            capture_screenshot,
+            screenshot_to_base64,
+            // Conversations
+            db_save_message,
+            db_load_messages,
+            db_clear_messages,
             // Settings
             db_get_setting,
             db_set_setting,

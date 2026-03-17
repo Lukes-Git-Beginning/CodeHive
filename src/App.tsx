@@ -17,7 +17,9 @@ import { useProjectStore } from './stores/projectStore'
 import { useAgentStore } from './stores/agentStore'
 import { useProfileStore } from './stores/profileStore'
 import { useNotificationStore } from './stores/notificationStore'
+import { useChatStore } from './stores/chatStore'
 import { quickScan } from './services/autoScan'
+import { captureAndAnalyze } from './services/vision'
 import { BrainCircuit, Settings, FolderPlus, Map, Brain, LayoutDashboard, X } from 'lucide-react'
 
 // Lazy-loaded panels (opened as overlays)
@@ -53,6 +55,12 @@ function App() {
   const loadProfile = useProfileStore((s) => s.loadProfile)
   useEffect(() => { initialize(); loadProfile() }, [initialize, loadProfile])
 
+  // Load chat messages on project switch
+  const loadMessages = useChatStore((s) => s.loadMessages)
+  useEffect(() => {
+    if (activeProjectId) loadMessages(activeProjectId)
+  }, [activeProjectId, loadMessages])
+
   // AutoScan on project switch
   useEffect(() => {
     if (!activeProject) return
@@ -73,6 +81,7 @@ function App() {
         if (e.key === 'd') { e.preventDefault(); setOverlayPanel(overlayPanel === 'dashboard' ? null : 'dashboard') }
         if (e.key === 'm') { e.preventDefault(); setIsMindPalaceOpen((p) => !p) }
       }
+      if (e.ctrlKey && e.shiftKey && e.key === 'S') { e.preventDefault(); captureAndAnalyze() }
       if (e.key === 'Escape') {
         setOverlayPanel(null)
         setIsMindPalaceOpen(false)
