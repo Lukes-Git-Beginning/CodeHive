@@ -104,17 +104,17 @@ function App() {
       />
 
       {/* Main Interaction Area */}
-      <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-8 pt-16 pb-10 overflow-y-auto">
+      <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-8 pt-16 pb-10 overflow-hidden">
         <ErrorBoundary label="Jarvis">
+          {/* Thought Nodes — full-width absolute overlay */}
+          <ThoughtNodes />
+
           <div className="relative flex flex-col items-center w-full max-w-4xl">
             {/* Proactive Suggestions */}
             <ProactiveSuggestions />
 
-            {/* Core Sphere + Thought Nodes */}
-            <div className="relative">
-              <JarvisCore />
-              <ThoughtNodes />
-            </div>
+            {/* Core Sphere */}
+            <JarvisCore />
 
             {/* Plan Approval (inline) */}
             <AnimatePresence>
