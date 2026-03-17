@@ -4,6 +4,7 @@ import { Send, Zap, GitMerge } from 'lucide-react'
 import { orchestrate, directChat } from '../../services/orchestrator'
 import { useProjectStore } from '../../stores/projectStore'
 import { useChatStore } from '../../stores/chatStore'
+import { useNotificationStore } from '../../stores/notificationStore'
 import type { ChatMessage } from '../../types/agent'
 
 export function Omnibox() {
@@ -47,9 +48,10 @@ export function Omnibox() {
       addMessage({
         id: crypto.randomUUID(),
         role: 'system',
-        content: `Fehler: ${err}`,
+        content: `Fehler: ${String(err)}`,
         timestamp: new Date().toISOString(),
       })
+      useNotificationStore.getState().addNotification('error', `Metis: ${String(err)}`)
       setProcessing(false)
     }
   }, [input, mode, isProcessing, activeProject, addMessage, setProcessing])

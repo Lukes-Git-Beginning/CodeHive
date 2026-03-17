@@ -82,10 +82,11 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
       p.lastSeen = new Date().toISOString()
       p.runsSinceLastSelfImprove++
 
-      // Track task type frequency from prompt keywords
+      // Track task type frequency from prompt keywords (word boundaries)
       const keywords = ['security', 'test', 'refactor', 'feature', 'bug', 'deploy', 'review', 'audit', 'docs']
+      const lower = prompt.toLowerCase()
       for (const kw of keywords) {
-        if (prompt.toLowerCase().includes(kw)) {
+        if (new RegExp(`\\b${kw}`, 'i').test(lower)) {
           p.taskTypeFrequency[kw] = (p.taskTypeFrequency[kw] || 0) + 1
         }
       }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ProjectSelector } from './components/projects/ProjectSelector'
 import { SettingsPanel } from './components/settings/SettingsPanel'
@@ -16,12 +16,22 @@ import type { AgentRun } from './types/agent'
 import { useProjectStore } from './stores/projectStore'
 import { useAgentStore } from './stores/agentStore'
 import { useProfileStore } from './stores/profileStore'
-import { BrainCircuit, Settings, FolderPlus } from 'lucide-react'
+import { useNotificationStore } from './stores/notificationStore'
+import { quickScan } from './services/autoScan'
+import { BrainCircuit, Settings, FolderPlus, Map, Brain, LayoutDashboard, X } from 'lucide-react'
+
+// Lazy-loaded panels (opened as overlays)
+const RoadmapView = lazy(() => import('./components/roadmap/RoadmapView').then(m => ({ default: m.RoadmapView })))
+const KnowledgePanel = lazy(() => import('./components/knowledge/KnowledgePanel').then(m => ({ default: m.KnowledgePanel })))
+const ProjectDashboard = lazy(() => import('./components/dashboard/ProjectDashboard').then(m => ({ default: m.ProjectDashboard })))
+
+type OverlayPanel = 'roadmap' | 'knowledge' | 'dashboard' | null
 
 function App() {
   const [showSettings, setShowSettings] = useState(false)
   const [isMindPalaceOpen, setIsMindPalaceOpen] = useState(false)
   const [completedRun, setCompletedRun] = useState<AgentRun | null>(null)
+  const [overlayPanel, setOverlayPanel] = useState<OverlayPanel>(null)
   const activeProjectId = useProjectStore((s) => s.activeProjectId)
   const initialized = useProjectStore((s) => s.initialized)
   const initialize = useProjectStore((s) => s.initialize)
@@ -30,6 +40,7 @@ function App() {
   const approvePlan = useAgentStore((s) => s.approvePlan)
   const rejectPlan = useAgentStore((s) => s.rejectPlan)
   const runHistory = useAgentStore((s) => s.runHistory)
+  const activeProject = useProjectStore((s) => s.getActiveProject())
 
   // Show results summary when a run completes
   useEffect(() => {
@@ -38,8 +49,38 @@ function App() {
     }
   }, [phase, runHistory, completedRun])
 
+  // Init
   const loadProfile = useProfileStore((s) => s.loadProfile)
   useEffect(() => { initialize(); loadProfile() }, [initialize, loadProfile])
+
+  // AutoScan on project switch
+  useEffect(() => {
+    if (!activeProject) return
+    quickScan(activeProject).then((results) => {
+      const notify = useNotificationStore.getState().addNotification
+      for (const r of results.slice(0, 2)) {
+        notify(r.type === 'warning' ? 'warning' : 'info', `${r.title}: ${r.detail}`)
+      }
+    })
+  }, [activeProject?.id])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'r') { e.preventDefault(); setOverlayPanel(overlayPanel === 'roadmap' ? null : 'roadmap') }
+        if (e.key === 'k') { e.preventDefault(); setOverlayPanel(overlayPanel === 'knowledge' ? null : 'knowledge') }
+        if (e.key === 'd') { e.preventDefault(); setOverlayPanel(overlayPanel === 'dashboard' ? null : 'dashboard') }
+        if (e.key === 'm') { e.preventDefault(); setIsMindPalaceOpen((p) => !p) }
+      }
+      if (e.key === 'Escape') {
+        setOverlayPanel(null)
+        setIsMindPalaceOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [overlayPanel])
 
   // Loading state
   if (!initialized) {
@@ -51,7 +92,7 @@ function App() {
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             className="w-10 h-10 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"
           />
-          <p className="font-hud text-xs text-accent text-glow-green">Initializing Systems...</p>
+          <p className="font-hud text-xs text-accent text-glow-green">Metis wird initialisiert...</p>
         </motion.div>
       </div>
     )
@@ -64,23 +105,19 @@ function App() {
         <div className="flex-1 flex flex-col h-full">
           <ProjectSelector onProjectSelect={() => {}} />
         </div>
-
-        {/* Settings button */}
         <button
           onClick={() => setShowSettings(true)}
           className="absolute bottom-6 right-6 z-30 p-3 glass-elevated rounded-full text-text-muted hover:text-accent neon-hover transition-all"
         >
           <Settings className="w-5 h-5" />
         </button>
-
-        {/* Settings Modal */}
         <SettingsModal show={showSettings} onClose={() => setShowSettings(false)} />
         <ToastContainer />
       </div>
     )
   }
 
-  // ── JARVIS LAYOUT ──
+  // ── METIS LAYOUT ──
   return (
     <div className="relative w-screen h-screen bg-bg-deep grid-bg overflow-hidden">
       {/* Project Context Bar */}
@@ -105,7 +142,7 @@ function App() {
         <button
           onClick={() => setIsMindPalaceOpen(true)}
           className="p-2.5 glass-elevated rounded-full text-text-secondary hover:text-violet neon-hover transition-all group"
-          title="Mind Palace"
+          title="Mind Palace (Ctrl+M)"
         >
           <BrainCircuit className="w-4 h-4 group-hover:animate-pulse-glow" />
         </button>
@@ -118,9 +155,9 @@ function App() {
       />
 
       {/* Main Interaction Area */}
-      <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-8 pt-16 pb-10 overflow-hidden">
-        <ErrorBoundary label="Jarvis">
-          {/* Thought Nodes — floating badges around the orb */}
+      <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-8 pt-16 pb-14 overflow-hidden">
+        <ErrorBoundary label="Metis">
+          {/* Thought Nodes */}
           <ThoughtNodes onOpenMindPalace={() => setIsMindPalaceOpen(true)} />
 
           <div className="relative flex flex-col items-center w-full max-w-4xl">
@@ -130,7 +167,7 @@ function App() {
             {/* Core Sphere */}
             <JarvisCore />
 
-            {/* Plan Approval (inline) */}
+            {/* Plan Approval */}
             <AnimatePresence>
               {pendingPlan && (
                 <motion.div
@@ -196,8 +233,77 @@ function App() {
         )}
       </AnimatePresence>
 
-      {/* Minimal Status Bar */}
-      <div className="absolute bottom-0 w-full h-7 glass flex items-center justify-between px-4 z-40 border-t border-border">
+      {/* Overlay Panels (Roadmap, Knowledge, Dashboard) */}
+      <AnimatePresence>
+        {overlayPanel && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+            onClick={() => setOverlayPanel(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-elevated rounded-2xl w-full max-w-5xl h-[80vh] overflow-hidden flex flex-col"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
+                <span className="font-hud text-xs text-accent">
+                  {overlayPanel === 'roadmap' && 'Roadmap'}
+                  {overlayPanel === 'knowledge' && 'Knowledge Base'}
+                  {overlayPanel === 'dashboard' && 'Dashboard'}
+                </span>
+                <button
+                  onClick={() => setOverlayPanel(null)}
+                  className="p-1.5 hover:bg-bg-surface rounded-lg text-text-muted hover:text-text-primary transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                <ErrorBoundary label={overlayPanel}>
+                  <Suspense fallback={<div className="flex items-center justify-center h-full"><span className="text-text-muted font-mono text-xs">Laden...</span></div>}>
+                    {overlayPanel === 'roadmap' && <RoadmapView />}
+                    {overlayPanel === 'knowledge' && <KnowledgePanel />}
+                    {overlayPanel === 'dashboard' && <ProjectDashboard />}
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick-Access Bar (above StatusBar) */}
+      <div className="absolute bottom-7 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5">
+        <button
+          onClick={() => setOverlayPanel('dashboard')}
+          className={`p-2 rounded-lg transition-all ${overlayPanel === 'dashboard' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
+          title="Dashboard (Ctrl+D)"
+        >
+          <LayoutDashboard className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={() => setOverlayPanel('roadmap')}
+          className={`p-2 rounded-lg transition-all ${overlayPanel === 'roadmap' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
+          title="Roadmap (Ctrl+R)"
+        >
+          <Map className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={() => setOverlayPanel('knowledge')}
+          className={`p-2 rounded-lg transition-all ${overlayPanel === 'knowledge' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
+          title="Knowledge (Ctrl+K)"
+        >
+          <Brain className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Status Bar */}
+      <div className="absolute bottom-0 w-full h-7 glass flex items-center justify-between px-4 z-30 border-t border-border">
         <span className="text-[9px] font-hud text-text-muted">METIS v1.0</span>
         <span className="flex items-center gap-1.5 text-[9px] font-mono text-accent">
           <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />

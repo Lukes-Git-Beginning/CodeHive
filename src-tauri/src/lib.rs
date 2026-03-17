@@ -146,11 +146,17 @@ async fn spawn_agent(
     let aid_done = agent_id.clone();
     let state_clone = state.running_agents.clone();
     tokio::spawn(async move {
-        let status = child.wait().await;
+        // 10 minute timeout for agent subprocess
+        let status = tokio::time::timeout(
+            std::time::Duration::from_secs(600),
+            child.wait()
+        ).await;
+
         let final_status = match status {
-            Ok(s) if s.success() => "done",
-            Ok(_) => "error",
-            Err(_) => "error",
+            Ok(Ok(s)) if s.success() => "done",
+            Ok(Ok(_)) => "error",
+            Ok(Err(_)) => "error",
+            Err(_) => "error", // timeout
         };
 
         {
@@ -434,8 +440,10 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             // Initialize database in app data directory
-            let app_data = app.path().app_data_dir().expect("Failed to get app data dir");
-            let db = Database::new(app_data).expect("Failed to initialize database");
+            let app_data = app.path().app_data_dir()
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+            let db = Database::new(app_data)
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 
             app.manage(AppState {
                 running_agents: Arc::new(Mutex::new(HashMap::new())),

@@ -82,7 +82,7 @@ function buildWaves(tasks: TaskSpec[]): TaskSpec[][] {
 
 // ── Prompts ──
 
-const PLANNER_SYSTEM_PROMPT = `Du bist ein Software-Projektmanager und Architekt mit 1M Context Window.
+const PLANNER_SYSTEM_PROMPT = `Du bist Metis, eine KI-Assistentin für kluge Planung und Software-Architektur.
 Du analysierst Aufgaben und zerlegst sie in atomare, ausführbare Tasks.
 
 WICHTIG: Antworte NUR mit einem JSON-Objekt. Kein Markdown, keine Erklärungen davor oder danach.
@@ -114,7 +114,7 @@ Antworte als JSON:
   "tasks": [{ "id": "task-01", "name": "...", "complexity": 5, "role": "backend", "files": { "modify": [], "create": [], "read": [] }, "action": "...", "verify": "...", "done": "...", "dependsOn": [] }]
 }`
 
-const VERIFIER_SYSTEM_PROMPT = `Du bist ein Quality-Assurance-Spezialist mit 1M Context Window.
+const VERIFIER_SYSTEM_PROMPT = `Du bist Metis im Verifikations-Modus.
 Du prüfst ob die Arbeit der Agenten die ursprünglichen Ziele erfüllt.
 
 Prüfe goal-backward: "Was muss WAHR sein, damit die Ziele erreicht sind?"
@@ -309,12 +309,52 @@ Analysiere die Aufgabe und erstelle einen detaillierten Task-Plan als JSON.`
     'opus'
   )
 
-  // Parse the plan from output
+  // Parse the plan from output — try multiple strategies
   try {
-    const jsonMatch = output.match(/\{[\s\S]*"tasks"[\s\S]*\}/)
-    if (!jsonMatch) throw new Error('No JSON found in planner output')
+    let planJson: string | null = null
 
-    const plan = JSON.parse(jsonMatch[0]) as { goals: string[]; tasks: TaskSpec[] }
+    // Strategy 1: Try parsing the full output as JSON
+    try {
+      const trimmed = output.trim()
+      if (trimmed.startsWith('{')) {
+        JSON.parse(trimmed)
+        planJson = trimmed
+      }
+    } catch { /* not pure JSON */ }
+
+    // Strategy 2: Extract JSON from markdown code blocks
+    if (!planJson) {
+      const codeBlockMatch = output.match(/```(?:json)?\s*(\{[\s\S]*?"tasks"[\s\S]*?\})\s*```/)
+      if (codeBlockMatch) {
+        try {
+          JSON.parse(codeBlockMatch[1])
+          planJson = codeBlockMatch[1]
+        } catch { /* invalid JSON in code block */ }
+      }
+    }
+
+    // Strategy 3: Find outermost JSON object containing "tasks"
+    if (!planJson) {
+      const firstBrace = output.indexOf('{')
+      const lastBrace = output.lastIndexOf('}')
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        const candidate = output.slice(firstBrace, lastBrace + 1)
+        try {
+          const parsed = JSON.parse(candidate)
+          if (parsed.tasks) planJson = candidate
+        } catch { /* not valid JSON */ }
+      }
+    }
+
+    // Strategy 4: Original regex fallback
+    if (!planJson) {
+      const jsonMatch = output.match(/\{[\s\S]*"tasks"[\s\S]*\}/)
+      if (jsonMatch) planJson = jsonMatch[0]
+    }
+
+    if (!planJson) throw new Error('No JSON found')
+
+    const plan = JSON.parse(planJson) as { goals: string[]; tasks: TaskSpec[] }
 
     // Assign models based on complexity, infer role if missing
     for (const task of plan.tasks) {
