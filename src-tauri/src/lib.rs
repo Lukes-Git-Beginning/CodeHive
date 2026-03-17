@@ -12,6 +12,20 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::Mutex;
 
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+/// Create a Command that hides the console window on Windows.
+fn silent_cmd(program: &str) -> Command {
+    let mut cmd = Command::new(program);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentProcess {
     pub id: String,
@@ -82,7 +96,7 @@ async fn spawn_agent(
         return Err(format!("Path is not a directory: '{}'", clean_path));
     }
 
-    let mut cmd = Command::new("claude");
+    let mut cmd = silent_cmd("claude");
     cmd.arg("-p")
         .arg(&prompt)
         .arg("--output-format")
@@ -185,7 +199,7 @@ async fn get_agents(state: State<'_, AppState>) -> Result<Vec<AgentProcess>, Str
 
 #[tauri::command]
 async fn check_claude_cli() -> Result<String, String> {
-    let output = Command::new("claude")
+    let output = silent_cmd("claude")
         .arg("--version")
         .output()
         .await
@@ -528,7 +542,7 @@ async fn git_status(path: String) -> Result<GitStatusResult, String> {
         });
     }
 
-    let output = Command::new("git")
+    let output = silent_cmd("git")
         .args(["-C", &path, "status", "--porcelain=v2", "--branch"])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -596,7 +610,7 @@ struct GitCommit {
 #[tauri::command]
 async fn git_log(path: String, limit: Option<u32>) -> Result<Vec<GitCommit>, String> {
     let n = limit.unwrap_or(10).min(50).to_string();
-    let output = Command::new("git")
+    let output = silent_cmd("git")
         .args(["-C", &path, "log", &format!("--format=%H%n%h%n%an%n%aI%n%s"), "-n", &n])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -630,7 +644,7 @@ async fn git_diff(path: String, staged: Option<bool>) -> Result<String, String> 
         args.push("--cached");
     }
 
-    let output = Command::new("git")
+    let output = silent_cmd("git")
         .args(&args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -654,7 +668,7 @@ async fn git_diff(path: String, staged: Option<bool>) -> Result<String, String> 
 async fn git_commit(path: String, message: String, files: Vec<String>) -> Result<String, String> {
     // Stage files
     if files.is_empty() {
-        Command::new("git")
+        silent_cmd("git")
             .args(["-C", &path, "add", "-A"])
             .output()
             .await
@@ -662,7 +676,7 @@ async fn git_commit(path: String, message: String, files: Vec<String>) -> Result
     } else {
         let mut args = vec!["-C".to_string(), path.clone(), "add".to_string()];
         args.extend(files);
-        Command::new("git")
+        silent_cmd("git")
             .args(&args)
             .output()
             .await
@@ -670,7 +684,7 @@ async fn git_commit(path: String, message: String, files: Vec<String>) -> Result
     }
 
     // Commit
-    let output = Command::new("git")
+    let output = silent_cmd("git")
         .args(["-C", &path, "commit", "-m", &message])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -684,7 +698,7 @@ async fn git_commit(path: String, message: String, files: Vec<String>) -> Result
     }
 
     // Get commit hash
-    let hash_output = Command::new("git")
+    let hash_output = silent_cmd("git")
         .args(["-C", &path, "rev-parse", "--short", "HEAD"])
         .stdout(Stdio::piped())
         .output()
@@ -699,7 +713,7 @@ async fn git_push(path: String, remote: Option<String>, branch: Option<String>) 
     let r = remote.unwrap_or_else(|| "origin".to_string());
     let b = branch.unwrap_or_else(|| "HEAD".to_string());
 
-    let output = Command::new("git")
+    let output = silent_cmd("git")
         .args(["-C", &path, "push", &r, &b])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -723,7 +737,7 @@ async fn git_pull(path: String, remote: Option<String>, branch: Option<String>) 
         args.push(b);
     }
 
-    let output = Command::new("git")
+    let output = silent_cmd("git")
         .args(&args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -747,7 +761,7 @@ async fn git_checkout(path: String, branch: String, create: Option<bool>) -> Res
     }
     args.push(&branch);
 
-    let output = Command::new("git")
+    let output = silent_cmd("git")
         .args(&args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

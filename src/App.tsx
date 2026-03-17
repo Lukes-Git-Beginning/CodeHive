@@ -315,7 +315,7 @@ function App() {
         {completedRun && (
           <ResultsSummary
             run={completedRun}
-            onClose={() => setCompletedRun(null)}
+            onClose={() => { setCompletedRun(null); useAgentStore.getState().setPhase('idle') }}
           />
         )}
       </AnimatePresence>
