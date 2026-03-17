@@ -10,6 +10,7 @@ import { useNotificationStore } from '../stores/notificationStore'
 import { ROLE_PROMPTS, getRoleForTask } from './agentRoles'
 import { generateMcpConfig } from './mcpConfig'
 import { useProfileStore } from '../stores/profileStore'
+import { useGitStore } from '../stores/gitStore'
 
 // ── Types ──
 
@@ -599,6 +600,7 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
     useProfileStore.getState().recordRun(prompt, roles, true)
 
     agentStore.finishRun('Alle Phasen abgeschlossen: Plan → Execute → Verify')
+    if (project.path) useGitStore.getState().refresh(project.path)
     chatStore.addMessage({
       id: crypto.randomUUID(),
       role: 'orchestrator',
@@ -673,6 +675,7 @@ Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}`
     useProfileStore.getState().recordRun(prompt, directRoles, true)
 
     agentStore.finishRun('Direct Chat abgeschlossen')
+    if (project.path) useGitStore.getState().refresh(project.path)
     chatStore.addMessage({
       id: crypto.randomUUID(),
       role: 'orchestrator',

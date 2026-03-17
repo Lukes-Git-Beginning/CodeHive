@@ -3,6 +3,38 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbScheduledTask {
+    pub id: String,
+    pub project_id: String,
+    pub name: String,
+    pub prompt: String,
+    pub schedule_interval: String,
+    pub enabled: bool,
+    pub last_run: Option<String>,
+    pub next_run: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbTeamMember {
+    pub id: String,
+    pub name: String,
+    pub role: String,
+    pub email: Option<String>,
+    pub avatar_color: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbTaskAssignment {
+    pub id: String,
+    pub task_id: String,
+    pub member_id: String,
+    pub assigned_at: String,
+}
+
 pub struct Database {
     conn: Mutex<Connection>,
 }
@@ -191,6 +223,46 @@ const MIGRATIONS: &[Migration] = &[
             );
 
             CREATE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id, timestamp);
+        ",
+    },
+    Migration {
+        version: 5,
+        description: "Add scheduled_tasks and team tables",
+        sql: "
+            CREATE TABLE IF NOT EXISTS scheduled_tasks (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                name TEXT NOT NULL,
+                prompt TEXT NOT NULL,
+                schedule_interval TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                last_run TEXT,
+                next_run TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_scheduled_project ON scheduled_tasks(project_id);
+            CREATE INDEX IF NOT EXISTS idx_scheduled_next ON scheduled_tasks(next_run);
+
+            CREATE TABLE IF NOT EXISTS team_members (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'developer',
+                email TEXT,
+                avatar_color TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS task_assignments (
+                id TEXT PRIMARY KEY,
+                task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+                member_id TEXT NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+                assigned_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_assignments_task ON task_assignments(task_id);
+            CREATE INDEX IF NOT EXISTS idx_assignments_member ON task_assignments(member_id);
         ",
     },
 ];
@@ -518,6 +590,128 @@ impl Database {
     pub fn clear_messages(&self, project_id: &str) -> Result<()> {
         let conn = lock_conn(&self.conn)?;
         conn.execute("DELETE FROM conversations WHERE project_id = ?1", params![project_id])?;
+        Ok(())
+    }
+
+    // ── Scheduled Tasks ──
+
+    pub fn list_scheduled_tasks(&self, project_id: &str) -> Result<Vec<DbScheduledTask>> {
+        let conn = lock_conn(&self.conn)?;
+        let mut stmt = conn.prepare(
+            "SELECT id, project_id, name, prompt, schedule_interval, enabled, last_run, next_run, created_at, updated_at
+             FROM scheduled_tasks WHERE project_id = ?1 ORDER BY created_at ASC",
+        )?;
+        let rows = stmt.query_map(params![project_id], |row| {
+            Ok(DbScheduledTask {
+                id: row.get(0)?,
+                project_id: row.get(1)?,
+                name: row.get(2)?,
+                prompt: row.get(3)?,
+                schedule_interval: row.get(4)?,
+                enabled: row.get::<_, i32>(5)? != 0,
+                last_run: row.get(6)?,
+                next_run: row.get(7)?,
+                created_at: row.get(8)?,
+                updated_at: row.get(9)?,
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn save_scheduled_task(&self, task: &DbScheduledTask) -> Result<()> {
+        let conn = lock_conn(&self.conn)?;
+        conn.execute(
+            "INSERT OR REPLACE INTO scheduled_tasks (id, project_id, name, prompt, schedule_interval, enabled, last_run, next_run, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                task.id,
+                task.project_id,
+                task.name,
+                task.prompt,
+                task.schedule_interval,
+                task.enabled as i32,
+                task.last_run,
+                task.next_run,
+                task.created_at,
+                task.updated_at,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete_scheduled_task(&self, id: &str) -> Result<()> {
+        let conn = lock_conn(&self.conn)?;
+        conn.execute("DELETE FROM scheduled_tasks WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+
+    // ── Team Members ──
+
+    pub fn list_team_members(&self) -> Result<Vec<DbTeamMember>> {
+        let conn = lock_conn(&self.conn)?;
+        let mut stmt = conn.prepare(
+            "SELECT id, name, role, email, avatar_color, created_at FROM team_members ORDER BY created_at ASC",
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok(DbTeamMember {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                role: row.get(2)?,
+                email: row.get(3)?,
+                avatar_color: row.get(4)?,
+                created_at: row.get(5)?,
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn save_team_member(&self, member: &DbTeamMember) -> Result<()> {
+        let conn = lock_conn(&self.conn)?;
+        conn.execute(
+            "INSERT OR REPLACE INTO team_members (id, name, role, email, avatar_color, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![member.id, member.name, member.role, member.email, member.avatar_color, member.created_at],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete_team_member(&self, id: &str) -> Result<()> {
+        let conn = lock_conn(&self.conn)?;
+        conn.execute("DELETE FROM team_members WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+
+    // ── Task Assignments ──
+
+    pub fn list_task_assignments(&self) -> Result<Vec<DbTaskAssignment>> {
+        let conn = lock_conn(&self.conn)?;
+        let mut stmt = conn.prepare(
+            "SELECT id, task_id, member_id, assigned_at FROM task_assignments ORDER BY assigned_at DESC",
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok(DbTaskAssignment {
+                id: row.get(0)?,
+                task_id: row.get(1)?,
+                member_id: row.get(2)?,
+                assigned_at: row.get(3)?,
+            })
+        })?;
+        rows.collect()
+    }
+
+    pub fn save_task_assignment(&self, assignment: &DbTaskAssignment) -> Result<()> {
+        let conn = lock_conn(&self.conn)?;
+        conn.execute(
+            "INSERT OR REPLACE INTO task_assignments (id, task_id, member_id, assigned_at)
+             VALUES (?1, ?2, ?3, ?4)",
+            params![assignment.id, assignment.task_id, assignment.member_id, assignment.assigned_at],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete_task_assignment(&self, id: &str) -> Result<()> {
+        let conn = lock_conn(&self.conn)?;
+        conn.execute("DELETE FROM task_assignments WHERE id = ?1", params![id])?;
         Ok(())
     }
 }

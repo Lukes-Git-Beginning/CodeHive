@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Map, Brain, LayoutDashboard, Settings, FolderPlus, Camera, Shield, TestTube, RefreshCw, Trash2 } from 'lucide-react'
+import { Search, Map, Brain, LayoutDashboard, Settings, FolderPlus, Camera, Shield, TestTube, RefreshCw, Trash2, Bell, Layers, Palette, GitCommitHorizontal, Upload, Download } from 'lucide-react'
+import { useThemeStore } from '../../stores/themeStore'
 
 interface Command {
   id: string
@@ -14,9 +15,10 @@ interface Command {
 interface CommandPaletteProps {
   isOpen: boolean
   onClose: () => void
-  onOpenPanel: (panel: 'roadmap' | 'knowledge' | 'dashboard') => void
+  onOpenPanel: (panel: 'roadmap' | 'knowledge' | 'dashboard' | 'templates') => void
   onOpenSettings: () => void
   onOpenMindPalace: () => void
+  onOpenNotifications: () => void
   onSwitchProject: () => void
   onScreenshot: () => void
   onOrchestrate: (prompt: string) => void
@@ -29,6 +31,7 @@ export function CommandPalette({
   onOpenPanel,
   onOpenSettings,
   onOpenMindPalace,
+  onOpenNotifications,
   onSwitchProject,
   onScreenshot,
   onOrchestrate,
@@ -50,6 +53,10 @@ export function CommandPalette({
     { id: 'improve', icon: RefreshCw, label: 'Metis verbessern', description: 'Selbstverbesserung starten', action: () => { onOrchestrate('Analysiere den CodeHive-Quellcode und schlage Verbesserungen vor.'); onClose() } },
     { id: 'switch', icon: FolderPlus, label: 'Projekt wechseln', description: 'Anderes Projekt auswählen', action: () => { onSwitchProject(); onClose() } },
     { id: 'clear', icon: Trash2, label: 'Chat leeren', description: 'Konversation zurücksetzen', action: () => { onClearChat(); onClose() } },
+    // New features
+    { id: 'notifications', icon: Bell, label: 'Benachrichtigungen', description: 'Notification-Verlauf anzeigen', shortcut: 'Ctrl+N', action: () => { onOpenNotifications(); onClose() } },
+    { id: 'templates', icon: Layers, label: 'Agent Templates', description: 'Vordefinierte Workflows ausführen', shortcut: 'Ctrl+T', action: () => { onOpenPanel('templates'); onClose() } },
+    { id: 'toggle-theme', icon: Palette, label: 'Theme wechseln', description: 'Dark/Light Theme umschalten', shortcut: 'Ctrl+Shift+T', action: () => { useThemeStore.getState().toggleTheme(); onClose() } },
   ]
 
   const filtered = query
@@ -72,10 +79,10 @@ export function CommandPalette({
   }, [query])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'ArrowDown' || e.key === 'j') {
       e.preventDefault()
       setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1))
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === 'ArrowUp' || e.key === 'k') {
       e.preventDefault()
       setSelectedIndex((i) => Math.max(i - 1, 0))
     } else if (e.key === 'Enter') {

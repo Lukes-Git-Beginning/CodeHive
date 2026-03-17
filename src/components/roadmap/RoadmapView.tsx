@@ -6,6 +6,7 @@ import { useAgentStore } from '../../stores/agentStore'
 import { useChatStore } from '../../stores/chatStore'
 import { orchestrate } from '../../services/orchestrator'
 import { useNotificationStore } from '../../stores/notificationStore'
+import { useTeamStore } from '../../stores/teamStore'
 import type { Task } from '../../types/project'
 import type { ChatMessage } from '../../types/agent'
 
@@ -21,8 +22,14 @@ export function RoadmapView() {
   const phase = useAgentStore((s) => s.phase)
   const isRunning = phase !== 'idle' && phase !== 'done'
   const { addMessage, setProcessing } = useChatStore()
+  const members = useTeamStore((s) => s.members)
+  const assignments = useTeamStore((s) => s.assignments)
+  const { assignTask, unassignTask, loadMembers, loadAssignments } = useTeamStore()
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [addingToColumn, setAddingToColumn] = useState<string | null>(null)
+
+  // Load team data
+  useState(() => { loadMembers(); loadAssignments() })
 
   const projectTasks = tasks.filter((t) => t.projectId === activeProjectId)
 
@@ -176,7 +183,11 @@ export function RoadmapView() {
                   </div>
                 )}
 
-                {colTasks.map((task) => (
+                {colTasks.map((task) => {
+                  const taskAssignment = assignments.find((a) => a.task_id === task.id)
+                  const assignedMember = taskAssignment ? members.find((m) => m.id === taskAssignment.member_id) : null
+
+                  return (
                   <motion.div
                     key={task.id}
                     layout
@@ -184,7 +195,30 @@ export function RoadmapView() {
                     animate={{ opacity: 1, y: 0 }}
                     className="glass neon-hover rounded-lg p-3 group"
                   >
-                    <p className="text-xs text-text-primary mb-1.5">{task.title}</p>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <p className="text-xs text-text-primary flex-1">{task.title}</p>
+                      {assignedMember ? (
+                        <div
+                          className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[7px] font-bold text-bg-deep cursor-pointer"
+                          style={{ backgroundColor: assignedMember.avatar_color }}
+                          title={`${assignedMember.name} (${assignedMember.role})`}
+                          onClick={() => { if (taskAssignment) unassignTask(taskAssignment.id) }}
+                        >
+                          {assignedMember.name.charAt(0).toUpperCase()}
+                        </div>
+                      ) : members.length > 0 ? (
+                        <select
+                          className="text-[8px] font-mono bg-transparent text-text-muted border border-white/5 rounded px-1 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          value=""
+                          onChange={(e) => { if (e.target.value) assignTask(task.id, e.target.value) }}
+                        >
+                          <option value="">Zuweisen</option>
+                          {members.map((m) => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                          ))}
+                        </select>
+                      ) : null}
+                    </div>
 
                     {task.description && (
                       <p className="text-[10px] text-text-muted mb-2 line-clamp-2">{task.description}</p>
@@ -228,7 +262,8 @@ export function RoadmapView() {
                       </button>
                     </div>
                   </motion.div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )

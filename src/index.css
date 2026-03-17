@@ -32,6 +32,65 @@
   --color-border-active: rgba(0, 255, 136, 0.50);
 }
 
+/* ── Light Theme Override ── */
+[data-theme="light"] {
+  --color-bg-deep: #f0f2f5;
+  --color-bg-surface: rgba(0, 0, 0, 0.04);
+  --color-bg-elevated: rgba(0, 0, 0, 0.07);
+  --color-bg-hover: rgba(0, 0, 0, 0.10);
+
+  --color-accent: #00b85e;
+  --color-accent-dim: rgba(0, 184, 94, 0.12);
+  --color-accent-glow: rgba(0, 184, 94, 0.20);
+  --color-cyan: #0094cc;
+  --color-cyan-dim: rgba(0, 148, 204, 0.12);
+  --color-violet: #5b45cc;
+  --color-violet-dim: rgba(91, 69, 204, 0.12);
+  --color-warning: #cc8800;
+  --color-warning-dim: rgba(204, 136, 0, 0.12);
+  --color-danger: #cc2244;
+  --color-danger-dim: rgba(204, 34, 68, 0.12);
+
+  --color-text-primary: rgba(0, 0, 0, 0.87);
+  --color-text-secondary: rgba(0, 0, 0, 0.60);
+  --color-text-muted: rgba(0, 0, 0, 0.38);
+
+  --color-border: rgba(0, 0, 0, 0.10);
+  --color-border-accent: rgba(0, 184, 94, 0.25);
+  --color-border-active: rgba(0, 184, 94, 0.50);
+}
+
+[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px) saturate(120%);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+[data-theme="light"] .glass-elevated {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px) saturate(130%);
+}
+[data-theme="light"] .glass-accent {
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 15px rgba(0, 184, 94, 0.15), inset 0 0 15px rgba(0, 184, 94, 0.03);
+}
+
+[data-theme="light"] .grid-bg::before {
+  background-image:
+    linear-gradient(0deg, transparent 24%, rgba(0, 0, 0, 0.03) 25%, rgba(0, 0, 0, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 0, 0, 0.03) 75%, rgba(0, 0, 0, 0.03) 76%, transparent 77%),
+    linear-gradient(90deg, transparent 24%, rgba(0, 0, 0, 0.03) 25%, rgba(0, 0, 0, 0.03) 26%, transparent 27%, transparent 74%, rgba(0, 0, 0, 0.03) 75%, rgba(0, 0, 0, 0.03) 76%, transparent 77%);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+[data-theme="light"] ::selection {
+  background: rgba(0, 184, 94, 0.20);
+  color: black;
+}
+
 /* ── Base Reset ── */
 * {
   margin: 0;

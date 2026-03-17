@@ -14,6 +14,8 @@ interface NotificationStore {
   notifications: Notification[]
   addNotification: (type: NotificationType, message: string) => void
   dismissNotification: (id: string) => void
+  markAllRead: () => void
+  deleteNotification: (id: string) => void
   clearAll: () => void
 }
 
@@ -39,6 +41,16 @@ export const useNotificationStore = create<NotificationStore>((set) => ({
       notifications: s.notifications.map((n) =>
         n.id === id ? { ...n, dismissed: true } : n
       ),
+    })),
+
+  markAllRead: () =>
+    set((s) => ({
+      notifications: s.notifications.map((n) => ({ ...n, dismissed: true })),
+    })),
+
+  deleteNotification: (id) =>
+    set((s) => ({
+      notifications: s.notifications.filter((n) => n.id !== id),
     })),
 
   clearAll: () => set({ notifications: [] }),

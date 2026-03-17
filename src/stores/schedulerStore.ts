@@ -1,0 +1,83 @@
+import { create } from 'zustand'
+import { invoke } from '@tauri-apps/api/core'
+import type { ScheduledTask, ScheduleInterval } from '../types/scheduler'
+import { getNextRun, startScheduler, stopScheduler } from '../services/scheduler'
+
+interface SchedulerStore {
+  tasks: ScheduledTask[]
+  isRunning: boolean
+
+  loadTasks: (projectId: string) => Promise<void>
+  addTask: (projectId: string, name: string, prompt: string, interval: ScheduleInterval) => Promise<void>
+  removeTask: (id: string) => Promise<void>
+  toggleTask: (id: string) => Promise<void>
+  start: () => void
+  stop: () => void
+}
+
+export const useSchedulerStore = create<SchedulerStore>((set, get) => ({
+  tasks: [],
+  isRunning: false,
+
+  loadTasks: async (projectId: string) => {
+    try {
+      const tasks = await invoke<ScheduledTask[]>('db_list_scheduled', { projectId })
+      set({ tasks })
+    } catch {
+      set({ tasks: [] })
+    }
+  },
+
+  addTask: async (projectId, name, prompt, interval) => {
+    const now = new Date().toISOString()
+    const task: ScheduledTask = {
+      id: crypto.randomUUID(),
+      project_id: projectId,
+      name,
+      prompt,
+      schedule_interval: interval,
+      enabled: true,
+      last_run: null,
+      next_run: getNextRun(interval),
+      created_at: now,
+      updated_at: now,
+    }
+    try {
+      await invoke('db_save_scheduled', { task })
+      set({ tasks: [...get().tasks, task] })
+    } catch (err) {
+      console.error('Failed to save scheduled task:', err)
+    }
+  },
+
+  removeTask: async (id) => {
+    try {
+      await invoke('db_delete_scheduled', { id })
+      set({ tasks: get().tasks.filter((t) => t.id !== id) })
+    } catch (err) {
+      console.error('Failed to delete scheduled task:', err)
+    }
+  },
+
+  toggleTask: async (id) => {
+    const task = get().tasks.find((t) => t.id === id)
+    if (!task) return
+    const updated = { ...task, enabled: !task.enabled, updated_at: new Date().toISOString() }
+    try {
+      await invoke('db_save_scheduled', { task: updated })
+      set({ tasks: get().tasks.map((t) => (t.id === id ? updated : t)) })
+    } catch (err) {
+      console.error('Failed to toggle scheduled task:', err)
+    }
+  },
+
+  start: () => {
+    startScheduler()
+    set({ isRunning: true })
+  },
+
+  stop: () => {
+    stopScheduler()
+    set({ isRunning: false })
+  },
+}))

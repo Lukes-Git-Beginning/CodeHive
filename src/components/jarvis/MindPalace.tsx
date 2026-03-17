@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { BrainCircuit, X, Database, ListTodo, ActivitySquare, Cpu, FileCode, Clock, ChevronDown, ChevronRight } from 'lucide-react'
+import { BrainCircuit, X, Database, ListTodo, ActivitySquare, Cpu, FileCode, Clock, ChevronDown, ChevronRight, GitBranch } from 'lucide-react'
 import { useAgentStore, type PendingPlan } from '../../stores/agentStore'
 import { useProjectStore } from '../../stores/projectStore'
+import { useGitStore } from '../../stores/gitStore'
+import { GitActions } from './GitActions'
 import type { AgentInstance, AgentRun } from '../../types/agent'
 
 function AgentCard({ agent, expanded = false }: { agent: AgentInstance; expanded?: boolean }) {
@@ -143,6 +145,9 @@ export function MindPalace({ isOpen, onClose }: MindPalaceProps) {
   const pendingPlan = useAgentStore((s) => s.pendingPlan)
   const runHistory = useAgentStore((s) => s.runHistory)
   const tasks = useProjectStore((s) => s.tasks)
+  const activeProject = useProjectStore((s) => s.getActiveProject())
+  const gitStatus = useGitStore((s) => s.status)
+  const gitCommits = useGitStore((s) => s.commits)
 
   return (
     <AnimatePresence>
@@ -201,6 +206,62 @@ export function MindPalace({ isOpen, onClose }: MindPalaceProps) {
                     <span>Pending Plan</span>
                   </div>
                   <PlanSection plan={pendingPlan} />
+                </section>
+              )}
+
+              {/* Git Intelligence */}
+              {gitStatus?.is_git_repo && (
+                <section>
+                  <div className="flex items-center gap-2 text-text-secondary font-hud text-[10px] mb-3">
+                    <GitBranch className="w-3.5 h-3.5" />
+                    <span>Git ({gitStatus.branch})</span>
+                  </div>
+
+                  {gitStatus.files.length > 0 && (
+                    <div className="space-y-1 mb-3">
+                      <p className="text-[9px] font-hud text-text-muted mb-1.5">
+                        {gitStatus.files.length} ungespeicherte Änderungen
+                      </p>
+                      {gitStatus.files.slice(0, 8).map((file) => (
+                        <div key={file.path} className="flex items-center gap-2 text-[10px]">
+                          <span className={`font-mono w-5 text-center ${
+                            file.status === 'M' ? 'text-warning' :
+                            file.status === 'A' ? 'text-accent' :
+                            file.status === 'D' ? 'text-danger' : 'text-text-muted'
+                          }`}>{file.status}</span>
+                          <span className="text-text-secondary font-mono truncate">{file.path}</span>
+                        </div>
+                      ))}
+                      {gitStatus.files.length > 8 && (
+                        <p className="text-[9px] text-text-muted">+{gitStatus.files.length - 8} weitere</p>
+                      )}
+                    </div>
+                  )}
+
+                  {gitCommits.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-[9px] font-hud text-text-muted mb-1.5">Letzte Commits</p>
+                      {gitCommits.slice(0, 5).map((c) => (
+                        <div key={c.hash} className="glass rounded-md px-2.5 py-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[9px] text-cyan shrink-0">{c.short_hash}</span>
+                            <span className="text-[10px] text-text-primary truncate flex-1">{c.message}</span>
+                          </div>
+                          <div className="flex gap-2 mt-0.5">
+                            <span className="text-[8px] text-text-muted">{c.author}</span>
+                            <span className="text-[8px] text-text-muted">
+                              {new Date(c.date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Git Actions */}
+                  {activeProject?.path && (
+                    <GitActions projectPath={activeProject.path} />
+                  )}
                 </section>
               )}
 

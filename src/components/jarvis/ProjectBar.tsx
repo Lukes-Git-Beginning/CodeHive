@@ -1,10 +1,12 @@
 import { useProjectStore } from '../../stores/projectStore'
 import { useAgentStore } from '../../stores/agentStore'
-import { FolderGit2, Activity, ChevronDown } from 'lucide-react'
+import { useGitStore } from '../../stores/gitStore'
+import { FolderGit2, Activity, ChevronDown, GitBranch } from 'lucide-react'
 
 export function ProjectBar() {
   const activeProject = useProjectStore((s) => s.getActiveProject())
   const phase = useAgentStore((s) => s.phase)
+  const gitStatus = useGitStore((s) => s.status)
 
   if (!activeProject) return null
 
@@ -31,6 +33,21 @@ export function ProjectBar() {
             </span>
           )}
         </div>
+
+        {gitStatus?.is_git_repo && (
+          <>
+            <div className="w-px h-4 bg-border" />
+            <div className="flex items-center gap-2">
+              <GitBranch className="w-3.5 h-3.5 text-cyan" />
+              <span className="font-mono text-[10px] text-text-secondary">{gitStatus.branch}</span>
+              {gitStatus.files.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-md bg-warning/20 text-warning font-mono text-[9px]">
+                  {gitStatus.files.length}
+                </span>
+              )}
+            </div>
+          </>
+        )}
 
         <div className="w-px h-4 bg-border" />
 

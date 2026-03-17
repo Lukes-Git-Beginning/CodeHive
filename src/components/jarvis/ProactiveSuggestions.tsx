@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, Check, X, Shield, TestTube, RefreshCw, Search, GraduationCap } from 'lucide-react'
+import { Sparkles, Check, X, Shield, TestTube, RefreshCw, Search, GraduationCap, GitBranch } from 'lucide-react'
 import { orchestrate } from '../../services/orchestrator'
 import { useProjectStore } from '../../stores/projectStore'
 import { useProfileStore } from '../../stores/profileStore'
 import { useAgentStore } from '../../stores/agentStore'
 import { useChatStore } from '../../stores/chatStore'
 import { generateResearchSuggestions, buildResearchPrompt } from '../../services/webResearch'
+import { useGitStore } from '../../stores/gitStore'
 import type { ChatMessage } from '../../types/agent'
 
 interface Suggestion {
@@ -14,7 +15,7 @@ interface Suggestion {
   icon: typeof Sparkles
   text: string
   actionPayload: string
-  category: 'security' | 'testing' | 'review' | 'improve' | 'learn'
+  category: 'security' | 'testing' | 'review' | 'improve' | 'learn' | 'git'
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -23,6 +24,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   review: 'text-cyan',
   learn: 'text-warning',
   improve: 'text-accent',
+  git: 'text-cyan',
 }
 
 function generateSuggestions(
@@ -30,6 +32,7 @@ function generateSuggestions(
   projectName: string,
   techStack: string[],
   taskCount: number,
+  gitFileCount: number,
 ): Suggestion[] {
   const suggestions: Suggestion[] = []
 
@@ -115,6 +118,17 @@ function generateSuggestions(
     })
   }
 
+  // Git suggestions
+  if (gitFileCount > 0) {
+    suggestions.push({
+      id: 'git-uncommitted',
+      icon: GitBranch,
+      text: `${gitFileCount} ungespeicherte Änderungen — committen?`,
+      actionPayload: `Analysiere die aktuellen Git-Änderungen in ${projectName} und erstelle eine passende Commit-Message. Zeige den Diff und schlage eine konventionelle Commit-Message vor.`,
+      category: 'git',
+    })
+  }
+
   return suggestions.slice(0, 3) // Max 3
 }
 
@@ -124,10 +138,12 @@ export function ProactiveSuggestions() {
   const profile = useProfileStore((s) => s.profile)
   const phase = useAgentStore((s) => s.phase)
   const { isProcessing, addMessage, setProcessing } = useChatStore()
+  const gitStatus = useGitStore((s) => s.status)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
 
-  // Regenerate suggestions when project or profile changes
+  // Regenerate suggestions when project, profile, or git status changes
+  const gitFileCount = gitStatus?.files.length ?? 0
   useEffect(() => {
     if (!activeProject || phase !== 'idle') {
       setSuggestions([])
@@ -139,10 +155,11 @@ export function ProactiveSuggestions() {
       activeProject.name,
       activeProject.techStack,
       openTasks,
+      gitFileCount,
     )
     setSuggestions(generated)
     setDismissed(new Set())
-  }, [activeProject?.id, profile.totalRuns, phase, tasks.length])
+  }, [activeProject?.id, profile.totalRuns, phase, tasks.length, gitFileCount])
 
   const handleAccept = async (suggestion: Suggestion) => {
     if (!activeProject || isProcessing) return

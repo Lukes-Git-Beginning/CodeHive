@@ -23,14 +23,20 @@ import { quickScan } from './services/autoScan'
 import { captureAndAnalyze } from './services/vision'
 import { orchestrate } from './services/orchestrator'
 import { startClipboardMonitor, stopClipboardMonitor } from './services/clipboard'
-import { BrainCircuit, Settings, FolderPlus, Map, Brain, LayoutDashboard, X } from 'lucide-react'
+import { useGitStore } from './stores/gitStore'
+import { useSchedulerStore } from './stores/schedulerStore'
+import { useThemeStore } from './stores/themeStore'
+import { NotificationCenter } from './components/ui/NotificationCenter'
+import { ShortcutOverlay } from './components/ui/ShortcutOverlay'
+import { BrainCircuit, Settings, FolderPlus, Map, Brain, LayoutDashboard, X, Bell } from 'lucide-react'
 
 // Lazy-loaded panels (opened as overlays)
 const RoadmapView = lazy(() => import('./components/roadmap/RoadmapView').then(m => ({ default: m.RoadmapView })))
 const KnowledgePanel = lazy(() => import('./components/knowledge/KnowledgePanel').then(m => ({ default: m.KnowledgePanel })))
-const ProjectDashboard = lazy(() => import('./components/dashboard/ProjectDashboard').then(m => ({ default: m.ProjectDashboard })))
+const ProjectDashboard = lazy(() => import('./components/dashboard/MetricsDashboard').then(m => ({ default: m.MetricsDashboard })))
+const TemplateSelectorPanel = lazy(() => import('./components/ui/TemplateSelector').then(m => ({ default: m.TemplateSelector })))
 
-type OverlayPanel = 'roadmap' | 'knowledge' | 'dashboard' | null
+type OverlayPanel = 'roadmap' | 'knowledge' | 'dashboard' | 'templates' | null
 
 function App() {
   const [showSettings, setShowSettings] = useState(false)
@@ -38,6 +44,8 @@ function App() {
   const [completedRun, setCompletedRun] = useState<AgentRun | null>(null)
   const [overlayPanel, setOverlayPanel] = useState<OverlayPanel>(null)
   const [showCommandPalette, setShowCommandPalette] = useState(false)
+  const [isNotifCenterOpen, setIsNotifCenterOpen] = useState(false)
+  const [showShortcutOverlay, setShowShortcutOverlay] = useState(false)
   const activeProjectId = useProjectStore((s) => s.activeProjectId)
   const initialized = useProjectStore((s) => s.initialized)
   const initialize = useProjectStore((s) => s.initialize)
@@ -57,7 +65,13 @@ function App() {
 
   // Init
   const loadProfile = useProfileStore((s) => s.loadProfile)
-  useEffect(() => { initialize(); loadProfile() }, [initialize, loadProfile])
+  useEffect(() => {
+    initialize()
+    loadProfile()
+    useThemeStore.getState().loadTheme()
+    useSchedulerStore.getState().start()
+    return () => useSchedulerStore.getState().stop()
+  }, [initialize, loadProfile])
 
   // Load chat messages on project switch
   const loadMessages = useChatStore((s) => s.loadMessages)
@@ -77,6 +91,16 @@ function App() {
     return () => stopClipboardMonitor()
   }, [activeProjectId])
 
+  // Git polling on project switch
+  useEffect(() => {
+    if (activeProject) {
+      useGitStore.getState().startPolling(activeProject.path)
+    } else {
+      useGitStore.getState().clear()
+    }
+    return () => useGitStore.getState().stopPolling()
+  }, [activeProjectId])
+
   // AutoScan on project switch
   useEffect(() => {
     if (!activeProject) return
@@ -89,24 +113,36 @@ function App() {
   }, [activeProject?.id])
 
   // Keyboard shortcuts
+  const unreadCount = useNotificationStore((s) => s.notifications.filter((n) => !n.dismissed).length)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
+        if (e.shiftKey && e.key === 'T') { e.preventDefault(); useThemeStore.getState().toggleTheme(); return }
+        if (e.shiftKey && e.key === 'S') { e.preventDefault(); captureAndAnalyze(); return }
         if (e.key === 'r') { e.preventDefault(); setOverlayPanel(overlayPanel === 'roadmap' ? null : 'roadmap') }
         if (e.key === 'k') { e.preventDefault(); setOverlayPanel(overlayPanel === 'knowledge' ? null : 'knowledge') }
         if (e.key === 'd') { e.preventDefault(); setOverlayPanel(overlayPanel === 'dashboard' ? null : 'dashboard') }
         if (e.key === 'm') { e.preventDefault(); setIsMindPalaceOpen((p) => !p) }
+        if (e.key === 'n') { e.preventDefault(); setIsNotifCenterOpen((p) => !p) }
+        if (e.key === 't') { e.preventDefault(); setOverlayPanel(overlayPanel === 'templates' ? null : 'templates') }
+        if (e.key === ',') { e.preventDefault(); setShowSettings((p) => !p) }
+        if (e.key === 'p') { e.preventDefault(); setShowCommandPalette((p) => !p) }
       }
-      if (e.ctrlKey && e.shiftKey && e.key === 'S') { e.preventDefault(); captureAndAnalyze() }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'p') { e.preventDefault(); setShowCommandPalette((p) => !p) }
+      // ? for shortcut overlay (only when no input focused)
+      if (e.key === '?' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault()
+        setShowShortcutOverlay((p) => !p)
+      }
       if (e.key === 'Escape') {
+        if (showShortcutOverlay) { setShowShortcutOverlay(false); return }
+        if (isNotifCenterOpen) { setIsNotifCenterOpen(false); return }
         setOverlayPanel(null)
         setIsMindPalaceOpen(false)
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [overlayPanel])
+  }, [overlayPanel, showShortcutOverlay, isNotifCenterOpen])
 
   // Loading state
   if (!initialized) {
@@ -159,9 +195,21 @@ function App() {
           <FolderPlus className="w-4 h-4" />
         </button>
         <button
+          onClick={() => setIsNotifCenterOpen(true)}
+          className="p-2.5 glass-elevated rounded-full text-text-muted hover:text-cyan neon-hover transition-all relative"
+          title="Benachrichtigungen (Ctrl+N)"
+        >
+          <Bell className="w-4 h-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-danger text-[8px] text-white flex items-center justify-center font-mono">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </button>
+        <button
           onClick={() => setShowSettings(true)}
           className="p-2.5 glass-elevated rounded-full text-text-muted hover:text-accent neon-hover transition-all"
-          title="Einstellungen"
+          title="Einstellungen (Ctrl+,)"
         >
           <Settings className="w-4 h-4" />
         </button>
@@ -178,6 +226,18 @@ function App() {
       <MindPalace
         isOpen={isMindPalaceOpen}
         onClose={() => setIsMindPalaceOpen(false)}
+      />
+
+      {/* Notification Center */}
+      <NotificationCenter
+        isOpen={isNotifCenterOpen}
+        onClose={() => setIsNotifCenterOpen(false)}
+      />
+
+      {/* Shortcut Overlay */}
+      <ShortcutOverlay
+        isOpen={showShortcutOverlay}
+        onClose={() => setShowShortcutOverlay(false)}
       />
 
       {/* Main Interaction Area */}
@@ -281,6 +341,7 @@ function App() {
                   {overlayPanel === 'roadmap' && 'Roadmap'}
                   {overlayPanel === 'knowledge' && 'Knowledge Base'}
                   {overlayPanel === 'dashboard' && 'Dashboard'}
+                  {overlayPanel === 'templates' && 'Agent Templates'}
                 </span>
                 <button
                   onClick={() => setOverlayPanel(null)}
@@ -295,6 +356,7 @@ function App() {
                     {overlayPanel === 'roadmap' && <RoadmapView />}
                     {overlayPanel === 'knowledge' && <KnowledgePanel />}
                     {overlayPanel === 'dashboard' && <ProjectDashboard />}
+                    {overlayPanel === 'templates' && <TemplateSelectorPanel />}
                   </Suspense>
                 </ErrorBoundary>
               </div>
@@ -354,6 +416,7 @@ function App() {
         onOpenPanel={setOverlayPanel}
         onOpenSettings={() => setShowSettings(true)}
         onOpenMindPalace={() => setIsMindPalaceOpen(true)}
+        onOpenNotifications={() => setIsNotifCenterOpen(true)}
         onSwitchProject={() => useProjectStore.getState().setActiveProject(null)}
         onScreenshot={() => captureAndAnalyze()}
         onOrchestrate={(prompt) => {

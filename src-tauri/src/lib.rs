@@ -1,6 +1,6 @@
 mod db;
 
-use db::{Database, DbProject, DbTask, DbAgentRun, DbKnowledge};
+use db::{Database, DbProject, DbTask, DbAgentRun, DbKnowledge, DbScheduledTask, DbTeamMember, DbTaskAssignment};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::process::Stdio;
@@ -493,6 +493,271 @@ fn db_clear_messages(state: State<'_, AppState>, project_id: String) -> Result<(
     state.db.clear_messages(&project_id).map_err(|e| e.to_string())
 }
 
+// ── Git Intelligence ──
+
+#[derive(Debug, Clone, Serialize)]
+struct GitFileChange {
+    path: String,
+    status: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct GitStatusResult {
+    is_git_repo: bool,
+    branch: String,
+    files: Vec<GitFileChange>,
+    ahead: u32,
+    behind: u32,
+}
+
+#[tauri::command]
+async fn git_status(path: String) -> Result<GitStatusResult, String> {
+    let git_dir = std::path::Path::new(&path).join(".git");
+    if !git_dir.exists() {
+        return Ok(GitStatusResult {
+            is_git_repo: false,
+            branch: String::new(),
+            files: vec![],
+            ahead: 0,
+            behind: 0,
+        });
+    }
+
+    let output = Command::new("git")
+        .args(["-C", &path, "status", "--porcelain=v2", "--branch"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await
+        .map_err(|e| format!("Git exec failed: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut branch = String::new();
+    let mut ahead: u32 = 0;
+    let mut behind: u32 = 0;
+    let mut files: Vec<GitFileChange> = vec![];
+
+    for raw_line in stdout.lines() {
+        let line = raw_line.trim();
+        if line.starts_with("# branch.head ") {
+            branch = line.strip_prefix("# branch.head ").unwrap_or("").to_string();
+        } else if line.starts_with("# branch.ab ") {
+            // Format: # branch.ab +N -M
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 4 {
+                ahead = parts[2].trim_start_matches('+').parse().unwrap_or(0);
+                behind = parts[3].trim_start_matches('-').parse().unwrap_or(0);
+            }
+        } else if line.starts_with("1 ") || line.starts_with("2 ") {
+            // Changed entries: "1 XY sub mH mI mW hH hI path" or "2 XY sub mH mI mW hH hI X\tscore path"
+            let parts: Vec<&str> = line.splitn(9, ' ').collect();
+            if parts.len() >= 9 {
+                let xy = parts[1];
+                let file_path = if line.starts_with("2 ") {
+                    // Rename: last part contains "old\tnew" — take new
+                    parts[8].split('\t').last().unwrap_or(parts[8])
+                } else {
+                    parts[8]
+                };
+                let status = if xy.starts_with('.') {
+                    xy.chars().nth(1).unwrap_or('M').to_string()
+                } else {
+                    xy.chars().next().unwrap_or('M').to_string()
+                };
+                files.push(GitFileChange { path: file_path.to_string(), status });
+            }
+        } else if line.starts_with("? ") {
+            // Untracked: "? path"
+            let file_path = line.strip_prefix("? ").unwrap_or("");
+            files.push(GitFileChange { path: file_path.to_string(), status: "??".to_string() });
+        }
+    }
+
+    // Cap at 200 files
+    files.truncate(200);
+
+    Ok(GitStatusResult { is_git_repo: true, branch, files, ahead, behind })
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct GitCommit {
+    hash: String,
+    short_hash: String,
+    author: String,
+    date: String,
+    message: String,
+}
+
+#[tauri::command]
+async fn git_log(path: String, limit: Option<u32>) -> Result<Vec<GitCommit>, String> {
+    let n = limit.unwrap_or(10).min(50).to_string();
+    let output = Command::new("git")
+        .args(["-C", &path, "log", &format!("--format=%H%n%h%n%an%n%aI%n%s"), "-n", &n])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await
+        .map_err(|e| format!("Git log failed: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines: Vec<&str> = stdout.lines().map(|l| l.trim()).filter(|l| !l.is_empty()).collect();
+    let mut commits = vec![];
+
+    for chunk in lines.chunks(5) {
+        if chunk.len() == 5 {
+            commits.push(GitCommit {
+                hash: chunk[0].to_string(),
+                short_hash: chunk[1].to_string(),
+                author: chunk[2].to_string(),
+                date: chunk[3].to_string(),
+                message: chunk[4].to_string(),
+            });
+        }
+    }
+
+    Ok(commits)
+}
+
+#[tauri::command]
+async fn git_diff(path: String, staged: Option<bool>) -> Result<String, String> {
+    let mut args = vec!["-C", &path, "diff"];
+    if staged.unwrap_or(false) {
+        args.push("--cached");
+    }
+
+    let output = Command::new("git")
+        .args(&args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await
+        .map_err(|e| format!("Git diff failed: {}", e))?;
+
+    let mut diff = String::from_utf8_lossy(&output.stdout).to_string();
+    // Cap at 50KB
+    if diff.len() > 50_000 {
+        diff.truncate(50_000);
+        diff.push_str("\n... (truncated)");
+    }
+
+    Ok(diff)
+}
+
+// ── Git Write Operations ──
+
+#[tauri::command]
+async fn git_commit(path: String, message: String, files: Vec<String>) -> Result<String, String> {
+    // Stage files
+    if files.is_empty() {
+        Command::new("git")
+            .args(["-C", &path, "add", "-A"])
+            .output()
+            .await
+            .map_err(|e| format!("Git add failed: {}", e))?;
+    } else {
+        let mut args = vec!["-C".to_string(), path.clone(), "add".to_string()];
+        args.extend(files);
+        Command::new("git")
+            .args(&args)
+            .output()
+            .await
+            .map_err(|e| format!("Git add failed: {}", e))?;
+    }
+
+    // Commit
+    let output = Command::new("git")
+        .args(["-C", &path, "commit", "-m", &message])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await
+        .map_err(|e| format!("Git commit failed: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Commit failed: {}", stderr.trim()));
+    }
+
+    // Get commit hash
+    let hash_output = Command::new("git")
+        .args(["-C", &path, "rev-parse", "--short", "HEAD"])
+        .stdout(Stdio::piped())
+        .output()
+        .await
+        .map_err(|e| format!("Git rev-parse failed: {}", e))?;
+
+    Ok(String::from_utf8_lossy(&hash_output.stdout).trim().to_string())
+}
+
+#[tauri::command]
+async fn git_push(path: String, remote: Option<String>, branch: Option<String>) -> Result<String, String> {
+    let r = remote.unwrap_or_else(|| "origin".to_string());
+    let b = branch.unwrap_or_else(|| "HEAD".to_string());
+
+    let output = Command::new("git")
+        .args(["-C", &path, "push", &r, &b])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await
+        .map_err(|e| format!("Git push failed: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Push failed: {}", stderr.trim()));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stderr).trim().to_string())
+}
+
+#[tauri::command]
+async fn git_pull(path: String, remote: Option<String>, branch: Option<String>) -> Result<String, String> {
+    let r = remote.unwrap_or_else(|| "origin".to_string());
+    let mut args = vec!["-C".to_string(), path, "pull".to_string(), r];
+    if let Some(b) = branch {
+        args.push(b);
+    }
+
+    let output = Command::new("git")
+        .args(&args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await
+        .map_err(|e| format!("Git pull failed: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Pull failed: {}", stderr.trim()));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+#[tauri::command]
+async fn git_checkout(path: String, branch: String, create: Option<bool>) -> Result<String, String> {
+    let mut args = vec!["-C", &path, "checkout"];
+    if create.unwrap_or(false) {
+        args.push("-b");
+    }
+    args.push(&branch);
+
+    let output = Command::new("git")
+        .args(&args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+        .await
+        .map_err(|e| format!("Git checkout failed: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("Checkout failed: {}", stderr.trim()));
+    }
+
+    Ok(format!("Switched to branch '{}'", branch))
+}
+
 // ── Settings ──
 
 #[tauri::command]
@@ -503,6 +768,55 @@ fn db_get_setting(state: State<'_, AppState>, key: String) -> Result<Option<Stri
 #[tauri::command]
 fn db_set_setting(state: State<'_, AppState>, key: String, value: String) -> Result<(), String> {
     state.db.set_setting(&key, &value).map_err(|e| e.to_string())
+}
+
+// ── Scheduled Tasks ──
+
+#[tauri::command]
+fn db_list_scheduled(state: State<'_, AppState>, project_id: String) -> Result<Vec<DbScheduledTask>, String> {
+    state.db.list_scheduled_tasks(&project_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_save_scheduled(state: State<'_, AppState>, task: DbScheduledTask) -> Result<(), String> {
+    state.db.save_scheduled_task(&task).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_delete_scheduled(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    state.db.delete_scheduled_task(&id).map_err(|e| e.to_string())
+}
+
+// ── Team ──
+
+#[tauri::command]
+fn db_list_members(state: State<'_, AppState>) -> Result<Vec<DbTeamMember>, String> {
+    state.db.list_team_members().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_save_member(state: State<'_, AppState>, member: DbTeamMember) -> Result<(), String> {
+    state.db.save_team_member(&member).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_delete_member(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    state.db.delete_team_member(&id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_list_assignments(state: State<'_, AppState>) -> Result<Vec<DbTaskAssignment>, String> {
+    state.db.list_task_assignments().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_save_assignment(state: State<'_, AppState>, assignment: DbTaskAssignment) -> Result<(), String> {
+    state.db.save_task_assignment(&assignment).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn db_delete_assignment(state: State<'_, AppState>, id: String) -> Result<(), String> {
+    state.db.delete_task_assignment(&id).map_err(|e| e.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -601,6 +915,25 @@ pub fn run() {
             // Settings
             db_get_setting,
             db_set_setting,
+            // Git Intelligence
+            git_status,
+            git_log,
+            git_diff,
+            git_commit,
+            git_push,
+            git_pull,
+            git_checkout,
+            // Scheduled Tasks
+            db_list_scheduled,
+            db_save_scheduled,
+            db_delete_scheduled,
+            // Team
+            db_list_members,
+            db_save_member,
+            db_delete_member,
+            db_list_assignments,
+            db_save_assignment,
+            db_delete_assignment,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
