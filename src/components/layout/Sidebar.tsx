@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { FolderOpen, Plus, Settings, Hexagon, Trash2 } from 'lucide-react'
+import { Plus, Settings, Hexagon, Trash2 } from 'lucide-react'
 import { useProjectStore } from '../../stores/projectStore'
 import { StatusDot } from '../ui/StatusDot'
 

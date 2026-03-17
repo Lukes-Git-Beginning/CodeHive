@@ -1,5 +1,4 @@
 import { invoke } from '@tauri-apps/api/core'
-import { useNotificationStore } from '../stores/notificationStore'
 
 let lastClipboardContent = ''
 let clipboardInterval: ReturnType<typeof setInterval> | null = null

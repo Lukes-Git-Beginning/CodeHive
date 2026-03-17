@@ -1,5 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion'
-import { X, Layers, Search, TestTube, Shield, Zap, FileText, Bug, RefreshCw, Rocket } from 'lucide-react'
+import { Layers, Search, TestTube, Shield, Zap, FileText, Bug, RefreshCw, Rocket } from 'lucide-react'
 import { BUILTIN_TEMPLATES, executeTemplate } from '../../services/templates'
 import { useProjectStore } from '../../stores/projectStore'
 import type { AgentTemplate, TemplateCategory } from '../../types/template'

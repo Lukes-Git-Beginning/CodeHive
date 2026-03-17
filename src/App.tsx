@@ -241,7 +241,7 @@ function App() {
       />
 
       {/* Main Interaction Area */}
-      <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-8 pt-16 pb-14 overflow-hidden">
+      <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-4 pt-20 pb-14 overflow-hidden">
         <ErrorBoundary label="Metis">
           {/* Thought Nodes */}
           <ThoughtNodes onOpenMindPalace={() => setIsMindPalaceOpen(true)} />

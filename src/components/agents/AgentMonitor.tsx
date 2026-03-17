@@ -1,6 +1,6 @@
 import { useState, useEffect, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bot, CheckCircle, AlertCircle, Loader2, Clock, Zap, Search, Shield, ChevronDown, Square } from 'lucide-react'
+import { Bot, CheckCircle, Loader2, Clock, Zap, Search, Shield, ChevronDown } from 'lucide-react'
 import { useAgentStore } from '../../stores/agentStore'
 import type { AgentInstance } from '../../types/agent'
 import { StatusDot } from '../ui/StatusDot'

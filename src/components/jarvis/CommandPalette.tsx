@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Map, Brain, LayoutDashboard, Settings, FolderPlus, Camera, Shield, TestTube, RefreshCw, Trash2, Bell, Layers, Palette, GitCommitHorizontal, Upload, Download } from 'lucide-react'
+import { Search, Map, Brain, LayoutDashboard, Settings, FolderPlus, Camera, Shield, TestTube, RefreshCw, Trash2, Bell, Layers, Palette } from 'lucide-react'
 import { useThemeStore } from '../../stores/themeStore'
 
 interface Command {

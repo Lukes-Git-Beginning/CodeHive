@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useChatStore } from '../../stores/chatStore'
 import { useAgentStore } from '../../stores/agentStore'
-import { MessageSquare, ChevronUp, ChevronDown, User, Cpu, AlertCircle, Zap, GitMerge } from 'lucide-react'
+import { ChevronUp, ChevronDown, User, Cpu, AlertCircle, Zap, GitMerge } from 'lucide-react'
 
 const ROLE_CONFIG: Record<string, { icon: typeof Cpu; color: string }> = {
   user: { icon: User, color: 'text-cyan' },

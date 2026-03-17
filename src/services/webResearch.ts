@@ -1,4 +1,3 @@
-import { invoke } from '@tauri-apps/api/core'
 import type { Project } from '../types/project'
 import { useProfileStore } from '../stores/profileStore'
 
