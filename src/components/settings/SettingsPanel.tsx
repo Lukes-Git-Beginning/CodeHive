@@ -73,8 +73,8 @@ export function SettingsPanel() {
   if (!loaded) return null
 
   return (
-    <div className="h-full overflow-y-auto p-6 max-w-2xl mx-auto">
-      <h2 className="font-hud text-sm text-accent holo-text mb-6 flex items-center gap-2">
+    <div className="h-full overflow-y-auto p-8 max-w-2xl mx-auto space-y-0">
+      <h2 className="font-hud text-sm text-accent holo-text mb-8 flex items-center gap-2">
         <Settings className="w-4 h-4" />
         System Configuration
       </h2>
@@ -83,7 +83,7 @@ export function SettingsPanel() {
       <motion.section
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-elevated rounded-xl p-5 mb-4"
+        className="glass-elevated rounded-xl p-6 mb-6"
       >
         <h3 className="font-hud text-[11px] text-cyan text-glow-cyan mb-4 flex items-center gap-2">
           <ClipboardCheck className="w-3.5 h-3.5" />
@@ -126,7 +126,7 @@ export function SettingsPanel() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="glass-elevated rounded-xl p-5 mb-4"
+        className="glass-elevated rounded-xl p-6 mb-6"
       >
         <h3 className="font-hud text-[11px] text-violet mb-4 flex items-center gap-2">
           <Bot className="w-3.5 h-3.5" />
@@ -154,7 +154,7 @@ export function SettingsPanel() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="glass-elevated rounded-xl p-5 mb-4"
+        className="glass-elevated rounded-xl p-6 mb-6"
       >
         <h3 className="font-hud text-[11px] text-accent mb-4 flex items-center gap-2">
           <Key className="w-3.5 h-3.5" />
@@ -182,7 +182,7 @@ export function SettingsPanel() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.12 }}
-        className="glass-elevated rounded-xl p-5 mb-4"
+        className="glass-elevated rounded-xl p-6 mb-6"
       >
         <h3 className="font-hud text-[11px] text-warning mb-4 flex items-center gap-2">
           <HardDrive className="w-3.5 h-3.5" />
@@ -224,7 +224,7 @@ export function SettingsPanel() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="glass-elevated rounded-xl p-5 mb-4"
+        className="glass-elevated rounded-xl p-6 mb-6"
       >
         <MCPSettings />
       </motion.section>
@@ -243,7 +243,7 @@ export function SettingsPanel() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="glass-elevated rounded-xl p-5"
+        className="glass-elevated rounded-xl p-6 mb-6"
       >
         <h3 className="font-hud text-[11px] text-warning mb-4 flex items-center gap-2">
           <Palette className="w-3.5 h-3.5" />
@@ -297,7 +297,7 @@ function SchedulerSection() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.17 }}
-      className="glass-elevated rounded-xl p-5 mb-4"
+      className="glass-elevated rounded-xl p-6 mb-6"
     >
       <h3 className="font-hud text-[11px] text-cyan text-glow-cyan mb-4 flex items-center gap-2">
         <Clock className="w-3.5 h-3.5" />
@@ -424,7 +424,7 @@ function TeamSection() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.19 }}
-      className="glass-elevated rounded-xl p-5 mb-4"
+      className="glass-elevated rounded-xl p-6 mb-6"
     >
       <h3 className="font-hud text-[11px] text-violet mb-4 flex items-center gap-2">
         <Users className="w-3.5 h-3.5" />
@@ -559,7 +559,7 @@ function DataSyncSection() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.22 }}
-      className="glass-elevated rounded-xl p-5 mb-4"
+      className="glass-elevated rounded-xl p-6 mb-6"
     >
       <h3 className="font-hud text-[11px] text-cyan text-glow-cyan mb-4 flex items-center gap-2">
         <Database className="w-3.5 h-3.5" />
