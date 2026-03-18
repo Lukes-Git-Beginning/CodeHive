@@ -31,7 +31,7 @@ import { useSchedulerStore } from './stores/schedulerStore'
 import { useThemeStore } from './stores/themeStore'
 import { NotificationCenter } from './components/ui/NotificationCenter'
 import { ShortcutOverlay } from './components/ui/ShortcutOverlay'
-import { BrainCircuit, Settings, FolderPlus, Map, Brain, LayoutDashboard, X, Bell, Cpu, ScrollText } from 'lucide-react'
+import { Map, Brain, LayoutDashboard, X, Cpu, ScrollText, Settings } from 'lucide-react'
 
 // Lazy-loaded panels (opened as overlays)
 const RoadmapView = lazy(() => import('./components/roadmap/RoadmapView').then(m => ({ default: m.RoadmapView })))
@@ -201,45 +201,14 @@ function App() {
   // ── METIS LAYOUT ──
   return (
     <div className="relative w-screen h-screen bg-bg-deep grid-bg overflow-hidden">
-      {/* Project Context Bar */}
-      <ProjectBar />
-
-      {/* Top-right controls */}
-      <div className="absolute right-6 top-5 z-30 flex items-center gap-2.5">
-        <button
-          onClick={() => useProjectStore.getState().setActiveProject(null)}
-          className="p-3 glass-holo rounded-sm text-text-muted hover:text-accent transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.15)]"
-          title="Projekt wechseln"
-        >
-          <FolderPlus className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => setIsNotifCenterOpen(true)}
-          className="p-3 glass-holo rounded-sm text-text-muted hover:text-cyan transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.15)] relative"
-          title="Benachrichtigungen (Ctrl+N)"
-        >
-          <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 rounded-full bg-danger text-[9px] text-white flex items-center justify-center font-mono">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setShowSettings(true)}
-          className="p-3 glass-holo rounded-sm text-text-muted hover:text-accent transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.15)]"
-          title="Einstellungen (Ctrl+,)"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => setIsMindPalaceOpen(true)}
-          className="p-3 glass-holo rounded-sm text-text-secondary hover:text-violet transition-all hover:shadow-[0_0_15px_rgba(123,97,255,0.15)] group"
-          title="Mind Palace (Ctrl+M)"
-        >
-          <BrainCircuit className="w-5 h-5 group-hover:animate-pulse-glow" />
-        </button>
-      </div>
+      {/* Project Context Bar (includes top-right buttons) */}
+      <ProjectBar
+        onSwitchProject={() => useProjectStore.getState().setActiveProject(null)}
+        onOpenNotifications={() => setIsNotifCenterOpen(true)}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenMindPalace={() => setIsMindPalaceOpen(true)}
+        unreadCount={unreadCount}
+      />
 
       {/* Mind Palace Overlay */}
       <MindPalace
@@ -389,7 +358,7 @@ function App() {
       </AnimatePresence>
 
       {/* Bottom Navigation Bar */}
-      <div className="absolute bottom-0 w-full h-10 z-40 flex items-center justify-between px-4"
+      <div className="absolute bottom-0 w-full h-12 z-40 flex items-center justify-between px-5"
         style={{
           background: 'linear-gradient(0deg, rgba(10, 14, 39, 0.95) 0%, rgba(10, 14, 39, 0.7) 100%)',
           borderTop: '1px solid rgba(0, 212, 255, 0.08)',
@@ -410,13 +379,13 @@ function App() {
               <button
                 key={tab.id}
                 onClick={() => setOverlayPanel(isTabActive ? null : tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-all font-hud text-[9px] tracking-wider ${
+                className={`flex items-center gap-2 px-4 py-2 rounded transition-all font-hud text-[10px] tracking-wider ${
                   isTabActive
                     ? 'text-accent bg-accent/10 shadow-[0_0_10px_rgba(0,212,255,0.1)]'
                     : 'text-text-muted hover:text-text-secondary hover:bg-white/5'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-4 h-4" />
                 {tab.label}
               </button>
             )

@@ -149,10 +149,10 @@ export function JarvisCore() {
           height: 140,
           border: `1.5px solid ${colors.core}40`,
           boxShadow: `
-            0 0 20px ${colors.glow},
-            0 0 40px ${colors.glow},
-            0 0 80px ${colors.glow},
-            inset 0 0 30px ${colors.glow}
+            0 0 30px ${colors.glow},
+            0 0 60px ${colors.glow},
+            0 0 100px ${colors.glow},
+            inset 0 0 40px ${colors.glow}
           `,
         }}
       >
@@ -160,7 +160,7 @@ export function JarvisCore() {
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            background: `radial-gradient(circle at 50% 50%, #0d1117 0%, #060a10 100%)`,
+            background: `radial-gradient(circle at 50% 50%, #141828 0%, #0a0e1a 100%)`,
           }}
         />
 
@@ -176,7 +176,7 @@ export function JarvisCore() {
               left: `${star.x}%`,
               top: `${star.y}%`,
             }}
-            animate={{ opacity: [0.2, 0.8, 0.2] }}
+            animate={{ opacity: [0.4, 1, 0.4] }}
             transition={{
               duration: star.duration,
               repeat: Infinity,
@@ -192,8 +192,8 @@ export function JarvisCore() {
           animate={{ rotate: [0, 360] }}
           transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
           style={{
-            background: `conic-gradient(from 0deg, transparent, ${colors.nebula1}30, transparent, ${colors.nebula2}20, transparent)`,
-            filter: 'blur(12px)',
+            background: `conic-gradient(from 0deg, transparent, ${colors.nebula1}70, transparent, ${colors.nebula2}50, transparent)`,
+            filter: 'blur(8px)',
             mixBlendMode: 'screen',
           }}
         />
@@ -204,8 +204,8 @@ export function JarvisCore() {
           animate={{ rotate: [360, 0] }}
           transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
           style={{
-            background: `conic-gradient(from 120deg, transparent, ${colors.nebula2}25, transparent, ${colors.nebula1}15, transparent, ${colors.nebula2}20, transparent)`,
-            filter: 'blur(8px)',
+            background: `conic-gradient(from 120deg, transparent, ${colors.nebula2}60, transparent, ${colors.nebula1}40, transparent, ${colors.nebula2}50, transparent)`,
+            filter: 'blur(6px)',
             mixBlendMode: 'screen',
           }}
         />
@@ -216,7 +216,7 @@ export function JarvisCore() {
           animate={{ rotate: [0, 360] }}
           transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
           style={{
-            background: `conic-gradient(from 240deg, transparent 30%, ${colors.core}15, transparent 50%, ${colors.nebula1}10, transparent 70%)`,
+            background: `conic-gradient(from 240deg, transparent 30%, ${colors.core}45, transparent 50%, ${colors.nebula1}35, transparent 70%)`,
             filter: 'blur(6px)',
             mixBlendMode: 'screen',
           }}
@@ -231,10 +231,10 @@ export function JarvisCore() {
           }}
           transition={{ duration: isActive ? 1.5 : 3, repeat: Infinity, ease: 'easeInOut' }}
           style={{
-            width: 40,
-            height: 40,
-            background: `radial-gradient(circle, ${colors.core}90, ${colors.core}40, transparent)`,
-            filter: 'blur(8px)',
+            width: 56,
+            height: 56,
+            background: `radial-gradient(circle, ${colors.core}cc, ${colors.core}60, transparent)`,
+            filter: 'blur(10px)',
           }}
         />
 
@@ -247,8 +247,8 @@ export function JarvisCore() {
           }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           style={{
-            width: 12,
-            height: 12,
+            width: 18,
+            height: 18,
             background: 'radial-gradient(circle, white 0%, rgba(255,255,255,0.6) 40%, transparent 70%)',
             filter: 'blur(2px)',
           }}
