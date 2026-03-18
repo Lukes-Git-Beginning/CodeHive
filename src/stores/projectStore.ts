@@ -87,7 +87,10 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
   loadTasksForProject: async (projectId) => {
     const tasks = await persistence.loadTasks(projectId)
-    set({ tasks })
+    // Stale check: only set if projectId is still active
+    if (get().activeProjectId === projectId) {
+      set({ tasks })
+    }
   },
 
   addTask: async (task) => {

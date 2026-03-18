@@ -68,6 +68,7 @@ export const useMetricsStore = create<MetricsStore>((set) => ({
 
   loadMetrics: async (projectId: string) => {
     set({ loading: true })
+    const now = Date.now()
 
     try {
       const [runs, profile, gitState] = await Promise.all([
@@ -115,7 +116,7 @@ export const useMetricsStore = create<MetricsStore>((set) => ({
         : 0
 
       // Filter daily counts to last 14 days
-      const cutoff = new Date()
+      const cutoff = new Date(now)
       cutoff.setDate(cutoff.getDate() - 14)
       const cutoffStr = cutoff.toISOString().slice(0, 10)
       const recentDailyCounts: Record<string, number> = {}
