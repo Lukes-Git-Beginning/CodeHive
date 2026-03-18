@@ -69,7 +69,7 @@ export function TemplateSelector() {
                       <button
                         key={template.id}
                         onClick={() => handleSelect(template)}
-                        disabled={loadingId !== null}
+                        disabled={loadingId === template.id}
                         className="glass neon-hover rounded-xl p-4 text-left group transition-all disabled:opacity-50"
                       >
                         <div className="flex items-center gap-2.5 mb-2">

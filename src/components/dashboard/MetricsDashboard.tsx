@@ -75,7 +75,7 @@ function DailyActivity({ dailyCounts }: { dailyCounts: Record<string, number> })
   const max = Math.max(...days.map((d) => d.count), 1)
 
   return (
-    <div className="flex items-end gap-1 h-16">
+    <div role="img" aria-label="Tägliche Aktivität der letzten 14 Tage" className="flex items-end gap-1 h-16">
       {days.map((day) => (
         <div key={day.label} className="flex-1 flex flex-col items-center gap-0.5">
           <div
@@ -84,6 +84,7 @@ function DailyActivity({ dailyCounts }: { dailyCounts: Record<string, number> })
               height: `${Math.max((day.count / max) * 48, 2)}px`,
               backgroundColor: day.count > 0 ? 'var(--color-cyan)' : 'var(--color-bg-surface)',
             }}
+            aria-label={`${day.label}: ${day.count} Runs`}
             title={`${day.label}: ${day.count} Runs`}
           />
           {/* Show label every 3rd day */}

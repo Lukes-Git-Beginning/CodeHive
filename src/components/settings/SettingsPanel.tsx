@@ -139,6 +139,7 @@ export function SettingsPanel() {
             <select
               value={defaultModel}
               onChange={(e) => { setDefaultModel(e.target.value); save('default_model', e.target.value) }}
+              aria-label="Standard-Modell"
               className="w-full glass rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent/40 font-mono"
             >
               <option value="opus">Claude Opus 1M (Complex)</option>
@@ -336,12 +337,14 @@ function SchedulerSection() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name des Zeitplans"
+            aria-label="Name des Zeitplans"
             className="w-full glass rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/40 font-mono placeholder:text-text-muted"
           />
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Prompt für Metis..."
+            aria-label="Prompt für Metis"
             rows={2}
             className="w-full glass rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/40 font-mono resize-none placeholder:text-text-muted"
           />
@@ -349,6 +352,7 @@ function SchedulerSection() {
             <select
               value={interval}
               onChange={(e) => setInterval(e.target.value as ScheduleInterval)}
+              aria-label="Intervall"
               className="flex-1 glass rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none font-mono"
             >
               {Object.entries(INTERVAL_LABELS).map(([val, label]) => (
@@ -467,12 +471,14 @@ function TeamSection() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name"
+            aria-label="Mitglied Name"
             className="w-full glass rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/40 font-mono placeholder:text-text-muted"
           />
           <div className="flex gap-2">
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
+              aria-label="Rolle"
               className="flex-1 glass rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none font-mono"
             >
               {ROLE_OPTIONS.map((r) => (
@@ -483,6 +489,7 @@ function TeamSection() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="E-Mail (optional)"
+              aria-label="E-Mail (optional)"
               className="flex-1 glass rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/40 font-mono placeholder:text-text-muted"
             />
           </div>

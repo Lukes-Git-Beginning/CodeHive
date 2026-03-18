@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
-import { Sparkles, Upload, Terminal, FolderPlus, ChevronRight, Check } from 'lucide-react'
+import { Sparkles, Upload, Terminal, FolderPlus, ChevronRight, Check, Loader2 } from 'lucide-react'
 import { importProjectBundle } from '../../services/persistence'
 import { useProjectStore } from '../../stores/projectStore'
 import { useNotificationStore } from '../../stores/notificationStore'
@@ -14,15 +14,19 @@ interface FirstRunWizardProps {
 export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
   const [step, setStep] = useState(0)
   const [claudeOk, setClaudeOk] = useState<boolean | null>(null)
+  const [checking, setChecking] = useState(false)
   const [importing, setImporting] = useState(false)
   const notify = useNotificationStore((s) => s.addNotification)
 
   const checkClaude = async () => {
+    setChecking(true)
     try {
       const version: string = await invoke('check_claude_cli')
       setClaudeOk(version.length > 0)
     } catch {
       setClaudeOk(false)
+    } finally {
+      setChecking(false)
     }
   }
 
@@ -106,9 +110,11 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
       {claudeOk === null ? (
         <button
           onClick={checkClaude}
-          className="px-4 py-2 hud-panel text-accent text-xs font-hud hover:shadow-[0_0_15px_rgba(0,212,255,0.2)] transition-all"
+          disabled={checking}
+          className="px-4 py-2 hud-panel text-accent text-xs font-hud hover:shadow-[0_0_15px_rgba(0,212,255,0.2)] transition-all disabled:opacity-50 flex items-center gap-2"
         >
-          Prüfen
+          {checking && <Loader2 className="w-3 h-3 animate-spin" />}
+          {checking ? 'Prüfe...' : 'Prüfen'}
         </button>
       ) : claudeOk ? (
         <div className="flex items-center gap-2 text-success text-xs font-hud">
