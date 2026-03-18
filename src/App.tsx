@@ -287,12 +287,14 @@ function App() {
             </AnimatePresence>
 
             {/* Omnibox */}
-            <div className="w-full relative z-30">
+            <div className="w-full flex justify-center relative z-30">
               <Omnibox />
             </div>
 
             {/* Conversation Stream */}
-            <ConversationStream />
+            <div className="w-full flex justify-center">
+              <ConversationStream />
+            </div>
           </div>
         </ErrorBoundary>
       </main>
