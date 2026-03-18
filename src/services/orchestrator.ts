@@ -11,7 +11,7 @@ import { ROLE_PROMPTS, getRoleForTask } from './agentRoles'
 import { generateMcpConfig } from './mcpConfig'
 import { useProfileStore } from '../stores/profileStore'
 import { useGitStore } from '../stores/gitStore'
-import { initBlackboard, formatBlackboardForPrompt, detectConflicts, extractAgentFindings } from './blackboard'
+import { initBlackboard, formatBlackboardForPrompt, detectConflicts, extractAgentFindings, postToBlackboard } from './blackboard'
 import { buildAgentContext, generateReflection } from './contextEngine'
 
 // ── Types ──
@@ -33,12 +33,22 @@ interface TaskSpec {
   verify: string
   done: string
   dependsOn: string[]
+  subGoal?: string // Optional: parent goal for hierarchical grouping
+}
+
+interface GoalNode {
+  id: string
+  goal: string
+  subGoals: GoalNode[]
+  tasks: TaskSpec[]
+  status: 'pending' | 'in_progress' | 'completed' | 'failed'
 }
 
 interface ExecutionPlan {
   goals: string[]
   tasks: TaskSpec[]
   waves: TaskSpec[][] // Grouped by dependency order
+  goalTree?: GoalNode // Optional hierarchical goal structure
 }
 
 // ── Model Routing ──
@@ -138,7 +148,7 @@ let statusUnlisten: (() => void) | null = null
 let isSettingUpListeners = false
 const agentCompletionCallbacks = new Map<string, (status: string) => void>()
 
-const AGENT_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes default
+const AGENT_TIMEOUT_MS = 15 * 60 * 1000 // 15 minutes — increased for complex tasks with checkpoint support
 
 function setupEventListeners() {
   if (isSettingUpListeners) return Promise.resolve()
@@ -211,13 +221,28 @@ function waitForAgent(agentId: string, timeoutMs = AGENT_TIMEOUT_MS): Promise<st
     const timer = setTimeout(() => {
       agentCompletionCallbacks.delete(agentId)
       const agentStore = useAgentStore.getState()
+
+      // Extract checkpoint from last output before timeout
+      const agent = agentStore.currentRun?.agents.find((a) => a.id === agentId)
+      if (agent && agent.output.length > 0) {
+        const checkpoint = agent.output.slice(-10).join('\n').slice(0, 2000)
+        postToBlackboard({
+          key: `checkpoint:${agent.role}`,
+          value: `Agent ${agent.role} timeout — letzter Stand: ${checkpoint}`,
+          type: 'warning',
+          sourceAgentId: agentId,
+          sourceRole: agent.role,
+          waveIndex: -1, // Will be updated by caller
+        })
+      }
+
       agentStore.updateAgent(agentId, {
         status: 'error',
         finishedAt: new Date().toISOString(),
       })
       useNotificationStore.getState().addNotification(
-        'error',
-        `Agent ${agentId.slice(0, 8)} Timeout nach ${Math.round(timeoutMs / 1000)}s`
+        'warning',
+        `Agent ${agentId.slice(0, 8)} Timeout — Checkpoint gespeichert`
       )
       reject(new Error(`Agent ${agentId} timed out after ${timeoutMs / 1000}s`))
     }, timeoutMs)
