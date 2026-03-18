@@ -58,13 +58,16 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
   },
 
   removeMember: async (id) => {
+    const prevMembers = get().members
+    const prevAssignments = get().assignments
+    set({
+      members: prevMembers.filter((m) => m.id !== id),
+      assignments: prevAssignments.filter((a) => a.member_id !== id),
+    })
     try {
       await invoke('db_delete_member', { id })
-      set({
-        members: get().members.filter((m) => m.id !== id),
-        assignments: get().assignments.filter((a) => a.member_id !== id),
-      })
-    } catch (err) {
+    } catch {
+      set({ members: prevMembers, assignments: prevAssignments })
       useNotificationStore.getState().addNotification('error', 'Teammitglied konnte nicht entfernt werden.')
     }
   },
@@ -76,19 +79,23 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
       member_id: memberId,
       assigned_at: new Date().toISOString(),
     }
+    const prevAssignments = get().assignments
+    set({ assignments: [...prevAssignments, assignment] })
     try {
       await invoke('db_save_assignment', { assignment })
-      set({ assignments: [...get().assignments, assignment] })
-    } catch (err) {
+    } catch {
+      set({ assignments: prevAssignments })
       useNotificationStore.getState().addNotification('error', 'Zuweisung konnte nicht gespeichert werden.')
     }
   },
 
   unassignTask: async (assignmentId) => {
+    const prevAssignments = get().assignments
+    set({ assignments: prevAssignments.filter((a) => a.id !== assignmentId) })
     try {
       await invoke('db_delete_assignment', { id: assignmentId })
-      set({ assignments: get().assignments.filter((a) => a.id !== assignmentId) })
-    } catch (err) {
+    } catch {
+      set({ assignments: prevAssignments })
       useNotificationStore.getState().addNotification('error', 'Zuweisung konnte nicht entfernt werden.')
     }
   },

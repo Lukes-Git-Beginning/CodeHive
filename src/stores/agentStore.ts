@@ -75,8 +75,8 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
 
   approvePlan: () => {
     const { planApprovalResolver } = get()
-    if (planApprovalResolver) planApprovalResolver()
     set({ pendingPlan: null, planApprovalResolver: null })
+    if (planApprovalResolver) planApprovalResolver()
   },
 
   rejectPlan: () => {

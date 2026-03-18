@@ -133,11 +133,14 @@ Antworte als JSON:
 
 let outputUnlisten: (() => void) | null = null
 let statusUnlisten: (() => void) | null = null
+let isSettingUpListeners = false
 const agentCompletionCallbacks = new Map<string, (status: string) => void>()
 
 const AGENT_TIMEOUT_MS = 5 * 60 * 1000 // 5 minutes default
 
 function setupEventListeners() {
+  if (isSettingUpListeners) return Promise.resolve()
+  isSettingUpListeners = true
   return Promise.all([
     outputUnlisten
       ? Promise.resolve()
@@ -187,7 +190,9 @@ function setupEventListeners() {
         }).then((unlisten) => {
           statusUnlisten = unlisten
         }),
-  ])
+  ]).finally(() => {
+    isSettingUpListeners = false
+  })
 }
 
 function cleanupEventListeners() {

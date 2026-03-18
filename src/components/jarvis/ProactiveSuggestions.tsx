@@ -175,6 +175,7 @@ export function ProactiveSuggestions() {
 
     // Self-improve uses dedicated handler
     if (suggestion.id === 'self-improve') {
+      addMessage({ id: crypto.randomUUID(), role: 'user', content: suggestion.actionPayload, timestamp: new Date().toISOString() })
       setProcessing(true)
       try {
         await triggerSelfImprovement()
@@ -236,6 +237,7 @@ export function ProactiveSuggestions() {
               <button
                 onClick={() => handleAccept(suggestion)}
                 className="p-1 rounded-full hover:bg-accent/20 text-text-muted hover:text-accent transition-colors"
+                aria-label="Vorschlag ausführen"
                 title="Ausführen"
               >
                 <Check className="w-3 h-3" />
@@ -243,6 +245,7 @@ export function ProactiveSuggestions() {
               <button
                 onClick={() => handleDismiss(suggestion.id)}
                 className="p-1 rounded-full hover:bg-danger/20 text-text-muted hover:text-danger transition-colors"
+                aria-label="Vorschlag verwerfen"
                 title="Verwerfen"
               >
                 <X className="w-3 h-3" />

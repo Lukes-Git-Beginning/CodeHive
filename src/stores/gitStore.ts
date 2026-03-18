@@ -23,11 +23,15 @@ export const useGitStore = create<GitStore>((set, get) => ({
   refresh: async (projectPath: string) => {
     if (get().isLoading) return
     set({ isLoading: true })
-    const [status, commits] = await Promise.all([
-      getGitStatus(projectPath),
-      getRecentCommits(projectPath, 10),
-    ])
-    set({ status, commits, isLoading: false })
+    try {
+      const [status, commits] = await Promise.all([
+        getGitStatus(projectPath),
+        getRecentCommits(projectPath, 10),
+      ])
+      set({ status, commits, isLoading: false })
+    } catch {
+      set({ isLoading: false })
+    }
   },
 
   startPolling: (projectPath: string) => {

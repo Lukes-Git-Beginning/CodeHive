@@ -60,12 +60,16 @@ function Badge({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0 }}
       transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+      role="button"
+      tabIndex={0}
+      aria-label={`${config.label}: ${agent.currentTask?.slice(0, 80) || 'Idle'} — ${statusLabel}`}
       className="absolute pointer-events-auto cursor-pointer"
       style={{
         left: `calc(50% + ${x}px - 44px)`,
         top: `calc(50% + ${y}px - 28px)`,
       }}
       onClick={onOpenMindPalace}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenMindPalace?.() } }}
       title={`${agent.role}: ${agent.currentTask?.slice(0, 80) || 'Idle'}`}
     >
       {/* Glow ring for active agents */}
