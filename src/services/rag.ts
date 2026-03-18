@@ -19,11 +19,12 @@ export async function searchKnowledge(
   limit = 5
 ): Promise<KnowledgeEntry[]> {
   try {
-    // Sanitize query for FTS5: wrap individual words in quotes for safe matching
+    // Sanitize query for FTS5: strip operators and special chars, wrap in quotes
     const sanitized = query
       .split(/\s+/)
-      .filter((w) => w.length > 1)
-      .map((w) => `"${w.replace(/"/g, '')}"`)
+      .map((w) => w.replace(/[*"():^~\\{}\[\]-]/g, ''))
+      .filter((w) => w.length > 1 && !['AND', 'OR', 'NOT', 'NEAR'].includes(w.toUpperCase()))
+      .map((w) => `"${w}"`)
       .join(' OR ')
 
     if (!sanitized) return []

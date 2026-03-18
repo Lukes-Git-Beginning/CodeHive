@@ -43,6 +43,20 @@ export const DEFAULT_MCP_SERVERS: McpServerConfig[] = [
   },
 ]
 
+const ALLOWED_COMMANDS = new Set(['npx', 'node', 'uvx', 'docker', 'python', 'python3'])
+
+function isValidMcpServer(obj: unknown): obj is McpServerConfig {
+  if (!obj || typeof obj !== 'object') return false
+  const o = obj as Record<string, unknown>
+  return typeof o.id === 'string' && typeof o.name === 'string' &&
+    typeof o.command === 'string' && Array.isArray(o.args) && typeof o.enabled === 'boolean'
+}
+
+function sanitizePath(p: string): string {
+  // Normalize and reject path traversal
+  return p.replace(/\.\.[/\\]/g, '').replace(/\.\.$/, '')
+}
+
 /**
  * Load MCP server configurations from settings.
  */
@@ -50,7 +64,10 @@ export async function loadMcpServers(): Promise<McpServerConfig[]> {
   const saved = await getSetting('mcp_servers')
   if (saved) {
     try {
-      return JSON.parse(saved) as McpServerConfig[]
+      const parsed = JSON.parse(saved)
+      if (!Array.isArray(parsed)) return [...DEFAULT_MCP_SERVERS]
+      const validated = parsed.filter(isValidMcpServer)
+      return validated.length > 0 ? validated : [...DEFAULT_MCP_SERVERS]
     } catch {
       return [...DEFAULT_MCP_SERVERS]
     }
@@ -78,11 +95,17 @@ export async function generateMcpConfig(project: Project): Promise<string | null
   const mcpConfig: Record<string, { command: string; args: string[] }> = {}
 
   for (const server of enabledServers) {
+    // Command injection guard: only allow whitelisted commands
+    if (!ALLOWED_COMMANDS.has(server.command)) {
+      console.warn(`MCP server '${server.id}' uses disallowed command '${server.command}', skipping`)
+      continue
+    }
+
     const args = [...server.args]
 
     // For filesystem server, add the project path as an allowed directory
     if (server.id === 'filesystem') {
-      args.push(project.path)
+      args.push(sanitizePath(project.path))
     }
 
     mcpConfig[server.id] = {
@@ -91,20 +114,27 @@ export async function generateMcpConfig(project: Project): Promise<string | null
     }
   }
 
+  if (Object.keys(mcpConfig).length === 0) return null
+
   const configJson = JSON.stringify({ mcpServers: mcpConfig }, null, 2)
+
+  // Validate project.id for safe file path usage
+  const safeId = project.id.replace(/[^a-zA-Z0-9_-]/g, '_')
 
   // Write config to app data directory
   const dataDir = await appDataDir()
-  const configPath = `${dataDir}mcp-config-${project.id}.json`
+  const configPath = `${dataDir}mcp-config-${safeId}.json`
 
   // Use Tauri to write the file
-  await invoke('write_temp_file', {
-    path: configPath,
-    content: configJson,
-  }).catch(() => {
-    // Fallback: try direct write via alternative method — this is best-effort
-    console.warn('Could not write MCP config file')
-  })
+  try {
+    await invoke('write_temp_file', {
+      path: configPath,
+      content: configJson,
+    })
+  } catch (err) {
+    console.warn('Could not write MCP config file:', err)
+    return null
+  }
 
   return configPath
 }
