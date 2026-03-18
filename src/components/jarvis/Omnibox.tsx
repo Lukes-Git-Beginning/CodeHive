@@ -16,7 +16,9 @@ export function Omnibox() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const activeProject = useProjectStore((s) => s.getActiveProject())
   const phase = useAgentStore((s) => s.phase)
-  const { isProcessing, addMessage, setProcessing } = useChatStore()
+  const isProcessing = useChatStore((s) => s.isProcessing)
+  const addMessage = useChatStore((s) => s.addMessage)
+  const setProcessing = useChatStore((s) => s.setProcessing)
 
   useEffect(() => {
     const ta = textareaRef.current

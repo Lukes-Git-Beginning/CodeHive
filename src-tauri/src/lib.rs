@@ -989,6 +989,7 @@ async fn update_project_identifier(state: State<'_, AppState>, project_id: Strin
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // Initialize database in app data directory
             let app_data = app.path().app_data_dir()

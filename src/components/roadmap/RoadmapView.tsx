@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, CheckCircle, Clock, Loader2, ChevronRight, Play, Trash2 } from 'lucide-react'
 import { useProjectStore } from '../../stores/projectStore'
@@ -17,11 +17,16 @@ const columns = [
 ]
 
 export function RoadmapView() {
-  const { tasks, activeProjectId, addTask, updateTask, removeTask } = useProjectStore()
+  const tasks = useProjectStore((s) => s.tasks)
+  const activeProjectId = useProjectStore((s) => s.activeProjectId)
+  const addTask = useProjectStore((s) => s.addTask)
+  const updateTask = useProjectStore((s) => s.updateTask)
+  const removeTask = useProjectStore((s) => s.removeTask)
   const activeProject = useProjectStore((s) => s.getActiveProject())
   const phase = useAgentStore((s) => s.phase)
   const isRunning = phase !== 'idle' && phase !== 'done'
-  const { addMessage, setProcessing } = useChatStore()
+  const addMessage = useChatStore((s) => s.addMessage)
+  const setProcessing = useChatStore((s) => s.setProcessing)
   const members = useTeamStore((s) => s.members)
   const assignments = useTeamStore((s) => s.assignments)
   const { assignTask, unassignTask, loadMembers, loadAssignments } = useTeamStore()
@@ -29,7 +34,7 @@ export function RoadmapView() {
   const [addingToColumn, setAddingToColumn] = useState<string | null>(null)
 
   // Load team data
-  useState(() => { loadMembers(); loadAssignments() })
+  useEffect(() => { loadMembers(); loadAssignments() }, [])
 
   const projectTasks = tasks.filter((t) => t.projectId === activeProjectId)
 
