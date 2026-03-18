@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Project, Task } from '../types/project'
 import * as persistence from '../services/persistence'
+import { useNotificationStore } from './notificationStore'
 
 interface ProjectStore {
   projects: Project[]
@@ -90,8 +91,14 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
 
   addTask: async (task) => {
+    const prevTasks = get().tasks
     set((s) => ({ tasks: [...s.tasks, task] }))
-    await persistence.saveTask(task)
+    try {
+      await persistence.saveTask(task)
+    } catch {
+      set({ tasks: prevTasks })
+      useNotificationStore.getState().addNotification('error', 'Task konnte nicht gespeichert werden.')
+    }
   },
 
   updateTask: async (id, updates) => {
@@ -103,11 +110,22 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set((s) => ({
       tasks: s.tasks.map((t) => (t.id === id ? updated : t)),
     }))
-    await persistence.saveTask(updated)
+    try {
+      await persistence.saveTask(updated)
+    } catch {
+      set({ tasks })
+      useNotificationStore.getState().addNotification('error', 'Task-Update konnte nicht gespeichert werden.')
+    }
   },
 
   removeTask: async (id) => {
+    const prevTasks = get().tasks
     set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) }))
-    await persistence.deleteTask(id)
+    try {
+      await persistence.deleteTask(id)
+    } catch {
+      set({ tasks: prevTasks })
+      useNotificationStore.getState().addNotification('error', 'Task konnte nicht gelöscht werden.')
+    }
   },
 }))

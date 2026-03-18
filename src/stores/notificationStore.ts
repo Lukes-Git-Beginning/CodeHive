@@ -8,6 +8,7 @@ export interface Notification {
   message: string
   timestamp: string
   dismissed: boolean
+  read: boolean
 }
 
 interface NotificationStore {
@@ -31,6 +32,7 @@ export const useNotificationStore = create<NotificationStore>((set) => ({
           message,
           timestamp: new Date().toISOString(),
           dismissed: false,
+          read: false,
         },
         ...s.notifications,
       ].slice(0, 50), // Keep max 50
@@ -45,7 +47,7 @@ export const useNotificationStore = create<NotificationStore>((set) => ({
 
   markAllRead: () =>
     set((s) => ({
-      notifications: s.notifications.map((n) => ({ ...n, dismissed: true })),
+      notifications: s.notifications.map((n) => ({ ...n, read: true })),
     })),
 
   deleteNotification: (id) =>

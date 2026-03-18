@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { invoke } from '@tauri-apps/api/core'
 import type { TeamMember, TaskAssignment } from '../types/team'
+import { useNotificationStore } from './notificationStore'
 
 const AVATAR_COLORS = ['var(--color-accent)', 'var(--color-cyan)', 'var(--color-violet)', 'var(--color-warning)']
 
@@ -52,7 +53,7 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
       await invoke('db_save_member', { member })
       set({ members: [...get().members, member] })
     } catch (err) {
-      console.error('Failed to save team member:', err)
+      useNotificationStore.getState().addNotification('error', 'Teammitglied konnte nicht gespeichert werden.')
     }
   },
 
@@ -64,7 +65,7 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
         assignments: get().assignments.filter((a) => a.member_id !== id),
       })
     } catch (err) {
-      console.error('Failed to delete team member:', err)
+      useNotificationStore.getState().addNotification('error', 'Teammitglied konnte nicht entfernt werden.')
     }
   },
 
@@ -79,7 +80,7 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
       await invoke('db_save_assignment', { assignment })
       set({ assignments: [...get().assignments, assignment] })
     } catch (err) {
-      console.error('Failed to save assignment:', err)
+      useNotificationStore.getState().addNotification('error', 'Zuweisung konnte nicht gespeichert werden.')
     }
   },
 
@@ -88,7 +89,7 @@ export const useTeamStore = create<TeamStore>((set, get) => ({
       await invoke('db_delete_assignment', { id: assignmentId })
       set({ assignments: get().assignments.filter((a) => a.id !== assignmentId) })
     } catch (err) {
-      console.error('Failed to delete assignment:', err)
+      useNotificationStore.getState().addNotification('error', 'Zuweisung konnte nicht entfernt werden.')
     }
   },
 }))

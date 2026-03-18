@@ -68,7 +68,7 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
     : notifications.filter((n) => n.type === filter)
 
   const grouped = groupByTime(filtered)
-  const unreadCount = notifications.filter((n) => !n.dismissed).length
+  const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
     <AnimatePresence>

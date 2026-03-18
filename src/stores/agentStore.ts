@@ -80,11 +80,19 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
   },
 
   rejectPlan: () => {
-    set({
-      pendingPlan: null,
-      planApprovalResolver: null,
-      phase: 'idle',
-      currentRun: null,
+    set((s) => {
+      const rejected = s.currentRun
+        ? { ...s.currentRun, status: 'rejected' as const, finishedAt: new Date().toISOString() }
+        : null
+      return {
+        pendingPlan: null,
+        planApprovalResolver: null,
+        phase: 'idle',
+        currentRun: null,
+        runHistory: rejected
+          ? [rejected, ...s.runHistory].slice(0, 20)
+          : s.runHistory,
+      }
     })
   },
 

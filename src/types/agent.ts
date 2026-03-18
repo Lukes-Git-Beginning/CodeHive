@@ -27,7 +27,7 @@ export interface AgentRun {
   taskId?: string
   agents: AgentInstance[]
   prompt: string
-  status: 'running' | 'completed' | 'failed'
+  status: 'running' | 'completed' | 'failed' | 'rejected'
   summary?: string
   startedAt: string
   finishedAt?: string
