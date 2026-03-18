@@ -72,7 +72,8 @@ export function CommandPalette({
     if (isOpen) {
       setQuery('')
       setSelectedIndex(0)
-      setTimeout(() => inputRef.current?.focus(), 100)
+      const timer = setTimeout(() => inputRef.current?.focus(), 100)
+      return () => clearTimeout(timer)
     }
   }, [isOpen])
 
@@ -81,10 +82,10 @@ export function CommandPalette({
   }, [query])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown' || e.key === 'j') {
+    if (e.key === 'ArrowDown' || (e.key === 'j' && query === '')) {
       e.preventDefault()
       setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1))
-    } else if (e.key === 'ArrowUp' || e.key === 'k') {
+    } else if (e.key === 'ArrowUp' || (e.key === 'k' && query === '')) {
       e.preventDefault()
       setSelectedIndex((i) => Math.max(i - 1, 0))
     } else if (e.key === 'Enter') {

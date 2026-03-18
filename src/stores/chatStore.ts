@@ -58,8 +58,11 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   loadMessages: async (projectId) => {
+    set({ activeProjectId: projectId })
     try {
       const dbMessages = await invoke<DbMessage[]>('db_load_messages', { projectId, limit: 100 })
+      // Stale check: only update if projectId is still active
+      if (get().activeProjectId !== projectId) return
       const messages: ChatMessage[] = dbMessages.map((m) => ({
         id: m.id,
         role: m.role as ChatMessage['role'],
@@ -67,9 +70,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         content: m.content,
         timestamp: m.timestamp,
       }))
-      set({ messages, activeProjectId: projectId })
+      set({ messages })
     } catch {
-      set({ messages: [], activeProjectId: projectId })
+      if (get().activeProjectId !== projectId) return
+      set({ messages: [] })
     }
   },
 

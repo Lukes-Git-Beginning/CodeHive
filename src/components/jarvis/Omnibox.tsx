@@ -55,6 +55,7 @@ export function Omnibox() {
         timestamp: new Date().toISOString(),
       })
       useNotificationStore.getState().addNotification('error', `Metis: ${String(err)}`)
+    } finally {
       setProcessing(false)
     }
   }, [input, mode, isProcessing, activeProject, addMessage, setProcessing])
@@ -113,6 +114,7 @@ export function Omnibox() {
             className={`p-1.5 rounded transition-colors ${
               mode === 'orchestrator' ? 'text-accent' : 'text-cyan'
             } hover:bg-white/5`}
+            aria-label={mode === 'orchestrator' ? 'Pipeline Mode' : 'Direct Mode'}
             title={mode === 'orchestrator' ? 'Pipeline Mode' : 'Direct Mode'}
           >
             {mode === 'orchestrator' ? <GitMerge className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
@@ -123,18 +125,20 @@ export function Omnibox() {
             onClick={() => captureAndAnalyze(input.trim() || undefined)}
             disabled={!activeProject || isProcessing}
             className="p-1.5 rounded text-text-muted hover:text-warning hover:bg-white/5 transition-colors disabled:opacity-30"
+            aria-label="Screenshot (Ctrl+Shift+S)"
             title="Screenshot (Ctrl+Shift+S)"
           >
             <Camera className="w-3.5 h-3.5" />
           </button>
 
           {/* Shortcut hint */}
-          <span className="text-[8px] font-mono text-text-muted/40 px-1">⌘K</span>
+          <span className="text-[8px] font-mono text-text-muted/40 px-1">Ctrl+P</span>
 
           {/* Send */}
           <button
             onClick={handleSubmit}
             disabled={!input.trim() || !activeProject || isProcessing}
+            aria-label="Senden"
             className="p-1.5 rounded transition-all disabled:opacity-20 text-accent hover:bg-accent/10 hover:shadow-[0_0_10px_rgba(0,212,255,0.15)]"
           >
             <Send className="w-4 h-4" />

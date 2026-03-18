@@ -99,6 +99,7 @@ export function RoadmapView() {
       })
       // Revert to planned on failure
       updateTask(task.id, { status: 'planned' })
+    } finally {
       setProcessing(false)
     }
   }

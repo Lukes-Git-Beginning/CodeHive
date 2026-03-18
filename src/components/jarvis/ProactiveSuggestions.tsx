@@ -145,6 +145,11 @@ export function ProactiveSuggestions() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
 
+  // Reset dismissed when project changes
+  useEffect(() => {
+    setDismissed(new Set())
+  }, [activeProject?.id])
+
   // Regenerate suggestions when project, profile, or git status changes
   const gitFileCount = gitStatus?.files.length ?? 0
   useEffect(() => {
@@ -162,7 +167,6 @@ export function ProactiveSuggestions() {
       gitFileCount,
     )
     setSuggestions(generated)
-    setDismissed(new Set())
   }, [activeProject?.id, profileTotalRuns, phase, tasks.length, gitFileCount])
 
   const handleAccept = async (suggestion: Suggestion) => {
@@ -171,10 +175,12 @@ export function ProactiveSuggestions() {
 
     // Self-improve uses dedicated handler
     if (suggestion.id === 'self-improve') {
+      setProcessing(true)
       try {
         await triggerSelfImprovement()
       } catch (err) {
         addMessage({ id: crypto.randomUUID(), role: 'system', content: `Fehler: ${err}`, timestamp: new Date().toISOString() })
+      } finally {
         setProcessing(false)
       }
       return
@@ -198,6 +204,7 @@ export function ProactiveSuggestions() {
         content: `Fehler: ${err}`,
         timestamp: new Date().toISOString(),
       })
+    } finally {
       setProcessing(false)
     }
   }
