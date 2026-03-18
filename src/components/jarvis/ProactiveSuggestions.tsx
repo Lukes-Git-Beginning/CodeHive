@@ -136,7 +136,7 @@ function generateSuggestions(
 export function ProactiveSuggestions() {
   const activeProject = useProjectStore((s) => s.getActiveProject())
   const tasks = useProjectStore((s) => s.tasks)
-  const profile = useProfileStore((s) => s.profile)
+  const profileTotalRuns = useProfileStore((s) => s.profile.totalRuns)
   const phase = useAgentStore((s) => s.phase)
   const isProcessing = useChatStore((s) => s.isProcessing)
   const addMessage = useChatStore((s) => s.addMessage)
@@ -152,6 +152,7 @@ export function ProactiveSuggestions() {
       setSuggestions([])
       return
     }
+    const profile = useProfileStore.getState().profile
     const openTasks = tasks.filter((t) => t.status !== 'done').length
     const generated = generateSuggestions(
       profile,
@@ -162,7 +163,7 @@ export function ProactiveSuggestions() {
     )
     setSuggestions(generated)
     setDismissed(new Set())
-  }, [activeProject?.id, profile.totalRuns, phase, tasks.length, gitFileCount])
+  }, [activeProject?.id, profileTotalRuns, phase, tasks.length, gitFileCount])
 
   const handleAccept = async (suggestion: Suggestion) => {
     if (!activeProject || isProcessing) return

@@ -1,5 +1,8 @@
 import { motion } from 'framer-motion'
 import { useAgentStore } from '../../stores/agentStore'
+import type { AgentInstance } from '../../types/agent'
+
+const EMPTY_AGENTS: AgentInstance[] = []
 
 const PHASE_COLORS: Record<string, { core: string; glow: string; ring: string }> = {
   idle: { core: '#00d4ff', glow: 'rgba(0, 212, 255, 0.2)', ring: 'rgba(0, 212, 255, 0.15)' },
@@ -22,7 +25,7 @@ export function JarvisCore() {
   const phase = useAgentStore((s) => s.phase)
   const currentWave = useAgentStore((s) => s.currentWave)
   const totalWaves = useAgentStore((s) => s.totalWaves)
-  const agents = useAgentStore((s) => s.currentRun?.agents || [])
+  const agents = useAgentStore((s) => s.currentRun?.agents ?? EMPTY_AGENTS)
   const colors = PHASE_COLORS[phase] || PHASE_COLORS.idle
   const isActive = phase !== 'idle' && phase !== 'done'
 
