@@ -14,7 +14,9 @@ interface ProjectSelectorProps {
 }
 
 export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
-  const { projects, addProject, setActiveProject } = useProjectStore()
+  const projects = useProjectStore((s) => s.projects)
+  const addProject = useProjectStore((s) => s.addProject)
+  const setActiveProject = useProjectStore((s) => s.setActiveProject)
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')
   const [newPath, setNewPath] = useState('')

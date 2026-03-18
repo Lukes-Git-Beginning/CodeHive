@@ -57,7 +57,10 @@ interface NotificationCenterProps {
 }
 
 export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps) {
-  const { notifications, markAllRead, deleteNotification, clearAll } = useNotificationStore()
+  const notifications = useNotificationStore((s) => s.notifications)
+  const markAllRead = useNotificationStore((s) => s.markAllRead)
+  const deleteNotification = useNotificationStore((s) => s.deleteNotification)
+  const clearAll = useNotificationStore((s) => s.clearAll)
   const [filter, setFilter] = useState<string>('all')
 
   const filtered = filter === 'all'

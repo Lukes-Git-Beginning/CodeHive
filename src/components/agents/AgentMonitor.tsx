@@ -118,7 +118,11 @@ const AgentCard = memo(function AgentCard({ agent }: { agent: AgentInstance }) {
 })
 
 export function AgentMonitor() {
-  const { currentRun, runHistory, phase, currentWave, totalWaves } = useAgentStore()
+  const currentRun = useAgentStore((s) => s.currentRun)
+  const runHistory = useAgentStore((s) => s.runHistory)
+  const phase = useAgentStore((s) => s.phase)
+  const currentWave = useAgentStore((s) => s.currentWave)
+  const totalWaves = useAgentStore((s) => s.totalWaves)
   const phaseInfo = phaseLabels[phase] || phaseLabels.idle
   const PhaseIcon = phaseInfo.icon
 

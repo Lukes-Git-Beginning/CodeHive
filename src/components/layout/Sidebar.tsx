@@ -9,7 +9,10 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onShowSettings, onAddProject }: SidebarProps) {
-  const { projects, activeProjectId, setActiveProject, removeProject } = useProjectStore()
+  const projects = useProjectStore((s) => s.projects)
+  const activeProjectId = useProjectStore((s) => s.activeProjectId)
+  const setActiveProject = useProjectStore((s) => s.setActiveProject)
+  const removeProject = useProjectStore((s) => s.removeProject)
 
   return (
     <div className="w-56 glass border-r border-border flex flex-col h-full shrink-0 relative z-10">

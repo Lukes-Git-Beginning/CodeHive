@@ -10,7 +10,9 @@ import { orchestrate, directChat } from '../../services/orchestrator'
 import type { ChatMessage } from '../../types/agent'
 
 function PlanApprovalCard() {
-  const { pendingPlan, approvePlan, rejectPlan } = useAgentStore()
+  const pendingPlan = useAgentStore((s) => s.pendingPlan)
+  const approvePlan = useAgentStore((s) => s.approvePlan)
+  const rejectPlan = useAgentStore((s) => s.rejectPlan)
   if (!pendingPlan) return null
 
   const modelColors: Record<string, string> = {
@@ -110,7 +112,10 @@ export function ChatPanel() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pendingPlan = useAgentStore((s) => s.pendingPlan)
-  const { messages, isProcessing, addMessage, setProcessing } = useChatStore()
+  const messages = useChatStore((s) => s.messages)
+  const isProcessing = useChatStore((s) => s.isProcessing)
+  const addMessage = useChatStore((s) => s.addMessage)
+  const setProcessing = useChatStore((s) => s.setProcessing)
   const activeProject = useProjectStore((s) => s.getActiveProject())
 
   useEffect(() => {

@@ -29,7 +29,10 @@ export function RoadmapView() {
   const setProcessing = useChatStore((s) => s.setProcessing)
   const members = useTeamStore((s) => s.members)
   const assignments = useTeamStore((s) => s.assignments)
-  const { assignTask, unassignTask, loadMembers, loadAssignments } = useTeamStore()
+  const assignTask = useTeamStore((s) => s.assignTask)
+  const unassignTask = useTeamStore((s) => s.unassignTask)
+  const loadMembers = useTeamStore((s) => s.loadMembers)
+  const loadAssignments = useTeamStore((s) => s.loadAssignments)
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [addingToColumn, setAddingToColumn] = useState<string | null>(null)
 

@@ -98,7 +98,20 @@ function DailyActivity({ dailyCounts }: { dailyCounts: Record<string, number> })
 
 export function MetricsDashboard() {
   const project = useProjectStore((s) => s.getActiveProject())
-  const metrics = useMetricsStore()
+  const metrics = useMetricsStore((s) => ({
+    successRate: s.successRate,
+    avgDuration: s.avgDuration,
+    healthScore: s.healthScore,
+    tokenEstimate: s.tokenEstimate,
+    totalRuns: s.totalRuns,
+    completedRuns: s.completedRuns,
+    failedRuns: s.failedRuns,
+    taskTypeDistribution: s.taskTypeDistribution,
+    durationHistory: s.durationHistory,
+    dailyRunCounts: s.dailyRunCounts,
+    loading: s.loading,
+  }))
+  const loadMetrics = useMetricsStore((s) => s.loadMetrics)
   const [files, setFiles] = useState<FileEntry[]>([])
   const [runs, setRuns] = useState<AgentRun[]>([])
   const [loadingFiles, setLoadingFiles] = useState(true)
@@ -107,7 +120,7 @@ export function MetricsDashboard() {
   useEffect(() => {
     if (!project) return
 
-    metrics.loadMetrics(project.id)
+    loadMetrics(project.id)
 
     setLoadingFiles(true)
     invoke<FileEntry[]>('list_project_files', { path: project.path, maxDepth: 3 })
@@ -162,7 +175,7 @@ export function MetricsDashboard() {
           <p className="text-[11px] text-text-muted font-mono mt-0.5">{project.path}</p>
         </div>
         <button
-          onClick={() => metrics.loadMetrics(project.id)}
+          onClick={() => loadMetrics(project.id)}
           className="p-2 rounded-lg hover:bg-bg-surface text-text-muted hover:text-accent transition-colors"
           title="Metriken aktualisieren"
         >

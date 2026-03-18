@@ -42,7 +42,7 @@ export function OfficeView() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const { currentRun } = useAgentStore()
+  const currentRun = useAgentStore((s) => s.currentRun)
 
   // Load assets + layout
   useEffect(() => {

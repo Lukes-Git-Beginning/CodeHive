@@ -265,7 +265,11 @@ const TEMPLATES: { name: string; prompt: string; interval: ScheduleInterval }[] 
 
 function SchedulerSection() {
   const project = useProjectStore((s) => s.getActiveProject())
-  const { tasks, loadTasks, addTask, removeTask, toggleTask } = useSchedulerStore()
+  const tasks = useSchedulerStore((s) => s.tasks)
+  const loadTasks = useSchedulerStore((s) => s.loadTasks)
+  const addTask = useSchedulerStore((s) => s.addTask)
+  const removeTask = useSchedulerStore((s) => s.removeTask)
+  const toggleTask = useSchedulerStore((s) => s.toggleTask)
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [prompt, setPrompt] = useState('')
@@ -394,7 +398,10 @@ function SchedulerSection() {
 const ROLE_OPTIONS = ['developer', 'designer', 'devops', 'lead'] as const
 
 function TeamSection() {
-  const { members, loadMembers, addMember, removeMember } = useTeamStore()
+  const members = useTeamStore((s) => s.members)
+  const loadMembers = useTeamStore((s) => s.loadMembers)
+  const addMember = useTeamStore((s) => s.addMember)
+  const removeMember = useTeamStore((s) => s.removeMember)
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [role, setRole] = useState('developer')
