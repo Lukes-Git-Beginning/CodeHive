@@ -70,6 +70,7 @@ export function ToastContainer() {
               <p className="text-xs text-text-primary flex-1">{n.message}</p>
               <button
                 onClick={() => dismiss(n.id)}
+                aria-label="Schließen"
                 className="text-text-muted hover:text-text-secondary shrink-0"
               >
                 <X className="w-3 h-3" />

@@ -166,6 +166,7 @@ export function ChatPanel() {
         content: `Fehler: ${err}`,
         timestamp: new Date().toISOString(),
       })
+    } finally {
       setProcessing(false)
     }
   }, [input, isProcessing, activeProject, directMode, addMessage, setProcessing])
@@ -194,7 +195,7 @@ export function ChatPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div role="log" aria-live="polite" aria-label="Chat-Nachrichten" className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full">
             <motion.div
@@ -313,6 +314,8 @@ export function ChatPanel() {
         <div className="flex items-center gap-2 mb-2">
           <button
             onClick={() => setDirectMode(!directMode)}
+            aria-pressed={directMode}
+            aria-label={directMode ? 'Direct Mode aktiv' : 'Orchestrator Mode aktiv'}
             className="flex items-center gap-1.5 text-[10px] font-hud tracking-wider text-text-muted hover:text-text-secondary transition-colors"
           >
             {directMode ? (
@@ -335,6 +338,7 @@ export function ChatPanel() {
             onKeyDown={handleKeyDown}
             placeholder={activeProject ? 'Enter command... (Shift+Enter für neue Zeile)' : 'Select a project first'}
             disabled={!activeProject || isProcessing}
+            aria-label="Nachricht an Metis"
             rows={1}
             className="flex-1 glass rounded-xl px-4 py-3 text-sm text-text-primary placeholder-text-muted
                        focus:outline-none focus:border-accent/40 focus:shadow-[0_0_15px_rgba(0,255,136,0.15)]
@@ -344,6 +348,7 @@ export function ChatPanel() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             type="submit"
+            aria-label="Senden"
             disabled={!input.trim() || !activeProject || isProcessing}
             className={`${directMode ? 'bg-cyan/15 border-cyan/30 text-cyan hover:bg-cyan/25 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)]' : 'bg-accent/15 border-accent/30 text-accent hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,255,136,0.3)]'} border px-4 py-3 rounded-xl
                        disabled:opacity-30 disabled:hover:shadow-none transition-all`}

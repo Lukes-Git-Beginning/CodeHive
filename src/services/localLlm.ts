@@ -41,7 +41,8 @@ export async function saveLocalLlmConfig(config: LocalLlmConfig): Promise<void> 
  */
 export async function checkOllamaStatus(): Promise<{ running: boolean; models: string[] }> {
   try {
-    const response = await fetch('http://localhost:11434/api/tags', {
+    const config = await loadLocalLlmConfig()
+    const response = await fetch(`${config.baseUrl}/api/tags`, {
       method: 'GET',
       signal: AbortSignal.timeout(3000),
     })

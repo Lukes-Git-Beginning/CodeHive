@@ -10,6 +10,7 @@ export function ScanLine({ color = 'rgba(0, 212, 255, 0.4)', duration = 3, direc
   if (direction === 'horizontal') {
     return (
       <motion.div
+        aria-hidden="true"
         className="absolute top-0 bottom-0 w-px pointer-events-none z-50"
         style={{
           background: `linear-gradient(180deg, transparent 0%, ${color} 50%, transparent 100%)`,
@@ -22,6 +23,7 @@ export function ScanLine({ color = 'rgba(0, 212, 255, 0.4)', duration = 3, direc
 
   return (
     <motion.div
+      aria-hidden="true"
       className="absolute left-0 right-0 h-px pointer-events-none z-50"
       style={{
         background: `linear-gradient(90deg, transparent 0%, ${color} 50%, transparent 100%)`,

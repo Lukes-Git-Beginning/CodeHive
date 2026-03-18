@@ -86,6 +86,9 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Benachrichtigungen"
             className="fixed top-0 right-0 h-screen w-[380px] glass-elevated border-l border-border z-50 flex flex-col overflow-hidden"
           >
             {/* Header */}

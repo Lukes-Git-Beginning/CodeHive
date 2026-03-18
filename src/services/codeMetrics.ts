@@ -12,9 +12,9 @@ export async function gatherMetrics(projectPath: string): Promise<CodeMetrics> {
     // Get recently changed files from git log
     let recentlyChanged: string[] = []
     try {
-      const gitLog: { commits: Array<{ files?: string[] }> } = await invoke('git_log', { path: projectPath })
+      const commits: Array<{ files?: string[] }> = await invoke('git_log', { path: projectPath }) ?? []
       const changedFiles = new Set<string>()
-      for (const commit of (gitLog.commits || []).slice(0, 5)) {
+      for (const commit of commits.slice(0, 5)) {
         for (const f of commit.files || []) {
           changedFiles.add(f)
         }
