@@ -7,12 +7,14 @@ import { extractLearnings, getRelevantContext, getProjectBrief } from './knowled
 import { getSetting, saveAgentRun } from './persistence'
 import { useChatStore } from '../stores/chatStore'
 import { useNotificationStore } from '../stores/notificationStore'
-import { ROLE_PROMPTS, getRoleForTask } from './agentRoles'
+import { ROLE_PROMPTS, getRoleForTask, AGENT_SAFETY_RULES } from './agentRoles'
 import { generateMcpConfig } from './mcpConfig'
 import { useProfileStore } from '../stores/profileStore'
 import { useGitStore } from '../stores/gitStore'
 import { initBlackboard, formatBlackboardForPrompt, detectConflicts, extractAgentFindings, postToBlackboard } from './blackboard'
 import { buildAgentContext, generateReflection } from './contextEngine'
+import { buildCodeGraph, getCurrentGraph } from './codeGraph'
+import { updateGenomeMetrics, shouldEvolve, analyzePerformance, buildMetaAgentPrompt } from './metaAgent'
 
 // ── Types ──
 
@@ -300,8 +302,12 @@ async function spawnAndWait(
 
   await completionPromise
 
-  // Collect output
+  // Collect output + update genome metrics
   const agent = useAgentStore.getState().currentRun?.agents.find((a) => a.id === agentId)
+  const success = agent?.status === 'done'
+  const duration = agent?.startedAt ? Date.now() - new Date(agent.startedAt).getTime() : 0
+  try { await updateGenomeMetrics(role, success, duration) } catch { /* best-effort */ }
+
   return agent?.output.join('\n') || ''
 }
 
@@ -483,9 +489,9 @@ Arbeite fokussiert und effizient. Ändere nur was nötig ist.`
         const agentContext = await buildAgentContext(task, role, project)
         const blackboardContext = formatBlackboardForPrompt()
 
-        // Combine role-specific prompt with project context + memory + blackboard
+        // Combine role-specific prompt with safety rules + project context + memory + blackboard
         const systemPrompt = `${rolePrompt}
-
+${AGENT_SAFETY_RULES}
 Projekt-Kontext:
 ${brief}
 Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}
@@ -612,6 +618,11 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
   // Initialize blackboard for inter-agent communication
   initBlackboard(run.id)
 
+  // Build code graph if not yet available (lazy, first run only)
+  if (!getCurrentGraph()) {
+    try { await buildCodeGraph(project.id, project.path) } catch { /* best-effort */ }
+  }
+
   try {
     // Phase 1: Plan
     const plan = await planTask(prompt, project)
@@ -662,6 +673,23 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
     useProfileStore.getState().recordRun(prompt, roles, true)
 
     agentStore.finishRun('Alle Phasen abgeschlossen: Plan → Execute → Verify')
+
+    // Check if self-improvement should be triggered
+    try {
+      if (await shouldEvolve()) {
+        const analysis = await analyzePerformance()
+        if (analysis.suggestions.length > 0) {
+          buildMetaAgentPrompt(analysis) // Prepared for future auto-execution
+          // Meta-Agent run is logged but not auto-executed — requires explicit trigger
+          chatStore.addMessage({
+            id: crypto.randomUUID(),
+            role: 'orchestrator',
+            content: `🧬 Self-Improvement verfügbar: ${analysis.suggestions.join('; ')}`,
+            timestamp: new Date().toISOString(),
+          })
+        }
+      }
+    } catch { /* meta-agent check is best-effort */ }
     if (project.path) useGitStore.getState().refresh(project.path)
     chatStore.addMessage({
       id: crypto.randomUUID(),

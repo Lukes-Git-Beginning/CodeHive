@@ -56,6 +56,22 @@ Arbeite nutzerzentriert und achte auf Konsistenz.`,
 } as const
 
 /**
+ * Safety rules injected into EVERY agent prompt.
+ * These are non-negotiable guardrails.
+ */
+export const AGENT_SAFETY_RULES = `
+SICHERHEITSREGELN (IMMER einhalten):
+- NIEMALS destructive Datenbank-Operationen ohne explizite Bestätigung (DROP, DELETE FROM, TRUNCATE, ALTER TABLE DROP COLUMN)
+- NIEMALS Produktions-Datenbanken direkt ändern — nur über Migrations
+- VOR jeder Datenbank-Änderung: Backup-Befehl dokumentieren
+- NIEMALS Secrets, API-Keys, Passwörter in Code oder Output schreiben
+- NIEMALS git push --force oder git reset --hard ohne Warnung
+- NIEMALS Dateien außerhalb des Projekt-Verzeichnisses lesen/schreiben
+- Bei Unsicherheit: [WARNING] posten statt blindes Ausführen
+- Destructive Operationen immer mit [WARNING] DESTRUCTIVE: ... markieren
+`
+
+/**
  * Infer the best role for a task based on its action description and name.
  */
 export function getRoleForTask(action: string, name: string): string {

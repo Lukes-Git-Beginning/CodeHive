@@ -8,6 +8,7 @@ import { useAgentStore } from '../../stores/agentStore'
 import { useChatStore } from '../../stores/chatStore'
 import { generateResearchSuggestions, buildResearchPrompt } from '../../services/webResearch'
 import { useGitStore } from '../../stores/gitStore'
+import { generatePredictions } from '../../services/intentPredictor'
 import { triggerSelfImprovement } from '../../services/selfImprove'
 import type { ChatMessage } from '../../types/agent'
 
@@ -159,6 +160,22 @@ export function ProactiveSuggestions() {
     }
     const profile = useProfileStore.getState().profile
     const openTasks = tasks.filter((t) => t.status !== 'done').length
+    // Add predictive suggestions from Intent Engine
+    generatePredictions(activeProject, 0.65).then((predictions) => {
+      for (const pred of predictions.slice(0, 2)) {
+        const existing = suggestions.find((s) => s.id === pred.id)
+        if (!existing) {
+          setSuggestions((prev) => [...prev, {
+            id: pred.id,
+            icon: Sparkles,
+            text: pred.title,
+            actionPayload: pred.actionPrompt,
+            category: pred.category as Suggestion['category'],
+          }].slice(0, 3))
+        }
+      }
+    }).catch(() => { /* predictions are best-effort */ })
+
     const generated = generateSuggestions(
       profile,
       activeProject.name,
