@@ -64,12 +64,14 @@ export function ProjectBar({ onSwitchProject, onOpenNotifications, onOpenSetting
 
         <button onClick={onSwitchProject}
           className="p-2 rounded text-text-muted hover:text-accent hover:bg-white/5 transition-all"
+          aria-label="Projekt wechseln"
           title="Projekt wechseln"
         >
           <FolderPlus className="w-4 h-4" />
         </button>
         <button onClick={onOpenNotifications}
           className="p-2 rounded text-text-muted hover:text-cyan hover:bg-white/5 transition-all relative"
+          aria-label="Benachrichtigungen (Ctrl+N)"
           title="Benachrichtigungen (Ctrl+N)"
         >
           <Bell className="w-4 h-4" />
@@ -81,12 +83,14 @@ export function ProjectBar({ onSwitchProject, onOpenNotifications, onOpenSetting
         </button>
         <button onClick={onOpenSettings}
           className="p-2 rounded text-text-muted hover:text-accent hover:bg-white/5 transition-all"
+          aria-label="Einstellungen (Ctrl+,)"
           title="Einstellungen (Ctrl+,)"
         >
           <Settings className="w-4 h-4" />
         </button>
         <button onClick={onOpenMindPalace}
           className="p-2 rounded text-text-secondary hover:text-violet hover:bg-white/5 transition-all"
+          aria-label="Mind Palace (Ctrl+M)"
           title="Mind Palace (Ctrl+M)"
         >
           <BrainCircuit className="w-4 h-4" />

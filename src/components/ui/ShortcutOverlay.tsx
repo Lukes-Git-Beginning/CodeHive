@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Keyboard } from 'lucide-react'
 
@@ -57,6 +58,28 @@ function KeyBadge({ keys }: { keys: string }) {
 }
 
 export function ShortcutOverlay({ isOpen, onClose }: ShortcutOverlayProps) {
+  const previousFocus = useRef<HTMLElement | null>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (isOpen) {
+      previousFocus.current = document.activeElement as HTMLElement
+      setTimeout(() => closeRef.current?.focus(), 100)
+    } else if (previousFocus.current) {
+      previousFocus.current.focus()
+      previousFocus.current = null
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [isOpen, onClose])
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -74,7 +97,7 @@ export function ShortcutOverlay({ isOpen, onClose }: ShortcutOverlayProps) {
             exit={{ opacity: 0, scale: 0.95 }}
             className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none"
           >
-            <div className="glass-elevated rounded-2xl w-full max-w-2xl pointer-events-auto">
+            <div role="dialog" aria-modal="true" aria-label="Tastenkürzel" className="glass-elevated rounded-2xl w-full max-w-2xl pointer-events-auto">
               {/* Header */}
               <div className="flex items-center justify-between p-5 border-b border-border">
                 <div className="flex items-center gap-3">
@@ -82,7 +105,9 @@ export function ShortcutOverlay({ isOpen, onClose }: ShortcutOverlayProps) {
                   <h2 className="font-hud text-sm text-text-primary">Tastenkürzel</h2>
                 </div>
                 <button
+                  ref={closeRef}
                   onClick={onClose}
+                  aria-label="Schließen"
                   className="p-2 hover:bg-bg-surface rounded-lg text-text-muted hover:text-text-primary transition-colors"
                 >
                   <X className="w-4 h-4" />

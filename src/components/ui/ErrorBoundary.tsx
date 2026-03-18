@@ -33,7 +33,7 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback
 
       return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+        <div role="alert" aria-live="assertive" className="flex flex-col items-center justify-center h-full p-8 text-center">
           <AlertTriangle className="w-10 h-10 text-danger mb-3" />
           <p className="font-hud text-xs text-danger mb-2">
             {this.props.label ? `${this.props.label} — ` : ''}System Error

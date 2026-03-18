@@ -319,6 +319,7 @@ function SchedulerSection() {
               </div>
               <button
                 onClick={() => removeTask(task.id)}
+                aria-label="Zeitplan löschen"
                 className="p-1.5 rounded-md hover:bg-danger/20 text-text-muted hover:text-danger transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -449,6 +450,7 @@ function TeamSection() {
               </div>
               <button
                 onClick={() => removeMember(member.id)}
+                aria-label="Mitglied entfernen"
                 className="p-1.5 rounded-md hover:bg-danger/20 text-text-muted hover:text-danger transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5" />

@@ -26,6 +26,7 @@ function formatDuration(start: string, end?: string): string {
 export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set())
   const [addingTasks, setAddingTasks] = useState(false)
+  const [voted, setVoted] = useState<'up' | 'down' | null>(null)
   const activeProject = useProjectStore((s) => s.getActiveProject())
   const addNotification = useNotificationStore((s) => s.addNotification)
   const loadTasksForProject = useProjectStore((s) => s.loadTasksForProject)
@@ -87,6 +88,9 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
         animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0)' }}
         exit={{ opacity: 0, scale: 0.9, y: 30, filter: 'blur(8px)' }}
         onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ergebnisse"
         className="hud-panel hud-brackets w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
       >
         <ScanLine color="rgba(0, 212, 255, 0.3)" duration={4} />
@@ -118,6 +122,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
           </div>
           <button
             onClick={onClose}
+            aria-label="Schließen"
             className="p-2 hover:bg-bg-surface rounded-lg text-text-muted hover:text-text-primary transition-colors"
           >
             <X className="w-5 h-5" />
@@ -189,13 +194,20 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
         <div className="p-6 border-t border-cyan/10 shrink-0 space-y-3">
           {/* Feedback */}
           <div className="flex items-center justify-center gap-4">
-            <span className="text-[10px] font-hud text-text-muted">Wie war das Ergebnis?</span>
+            <span className="text-[10px] font-hud text-text-muted">
+              {voted ? 'Danke für dein Feedback!' : 'Wie war das Ergebnis?'}
+            </span>
             <button
               onClick={() => {
                 useProfileStore.getState().recordFeedback(true)
                 addNotification('info', 'Danke! Metis lernt aus deinem Feedback.')
+                setVoted('up')
               }}
-              className="p-2 rounded-lg glass hover:bg-accent/15 hover:text-accent text-text-muted transition-colors"
+              disabled={voted !== null}
+              className={`p-2 rounded-lg glass transition-colors ${
+                voted === 'up' ? 'bg-accent/20 text-accent' : 'hover:bg-accent/15 hover:text-accent text-text-muted'
+              } disabled:cursor-default`}
+              aria-label="Gut"
               title="Gut"
             >
               <ThumbsUp className="w-4 h-4" />
@@ -204,8 +216,13 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
               onClick={() => {
                 useProfileStore.getState().recordFeedback(false)
                 addNotification('info', 'Verstanden. Metis wird beim nächsten Mal gründlicher arbeiten.')
+                setVoted('down')
               }}
-              className="p-2 rounded-lg glass hover:bg-danger/15 hover:text-danger text-text-muted transition-colors"
+              disabled={voted !== null}
+              className={`p-2 rounded-lg glass transition-colors ${
+                voted === 'down' ? 'bg-danger/20 text-danger' : 'hover:bg-danger/15 hover:text-danger text-text-muted'
+              } disabled:cursor-default`}
+              aria-label="Schlecht"
               title="Schlecht"
             >
               <ThumbsDown className="w-4 h-4" />

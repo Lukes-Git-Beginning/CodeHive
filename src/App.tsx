@@ -122,7 +122,7 @@ function App() {
   }, [activeProject?.id])
 
   // Keyboard shortcuts
-  const unreadCount = useNotificationStore((s) => s.notifications.filter((n) => !n.dismissed).length)
+  const unreadCount = useNotificationStore((s) => s.notifications.filter((n) => !n.read).length)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
@@ -188,6 +188,7 @@ function App() {
         </div>
         <button
           onClick={() => setShowSettings(true)}
+          aria-label="Einstellungen öffnen"
           className="absolute bottom-6 right-6 z-30 p-3 glass-elevated rounded-full text-text-muted hover:text-accent neon-hover transition-all"
         >
           <Settings className="w-5 h-5" />
@@ -324,6 +325,9 @@ function App() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label={overlayPanel ?? undefined}
               className="hud-panel hud-brackets w-full max-w-5xl h-[80vh] overflow-hidden flex flex-col"
             >
               <div className="flex items-center justify-between p-4 border-b border-cyan/10 shrink-0">
@@ -337,6 +341,7 @@ function App() {
                 </span>
                 <button
                   onClick={() => setOverlayPanel(null)}
+                  aria-label="Schließen"
                   className="p-1.5 hover:bg-bg-surface rounded-lg text-text-muted hover:text-text-primary transition-colors"
                 >
                   <X className="w-4 h-4" />
@@ -367,7 +372,7 @@ function App() {
         }}
       >
         {/* Left: Navigation tabs */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5" role="tablist" aria-label="Panel Navigation">
           {([
             { id: 'dashboard' as const, label: 'DASHBOARD', icon: LayoutDashboard },
             { id: 'roadmap' as const, label: 'ROADMAP', icon: Map },
@@ -380,6 +385,8 @@ function App() {
             return (
               <button
                 key={tab.id}
+                role="tab"
+                aria-selected={isTabActive}
                 onClick={() => setOverlayPanel(isTabActive ? null : tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded transition-all font-hud text-[10px] tracking-wider ${
                   isTabActive
@@ -453,6 +460,9 @@ function SettingsModal({ show, onClose }: { show: boolean; onClose: () => void }
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Einstellungen"
             className="hud-panel hud-brackets w-full max-w-xl max-h-[80vh] overflow-hidden"
           >
             <SettingsPanel />
