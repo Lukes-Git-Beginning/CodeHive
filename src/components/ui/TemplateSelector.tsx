@@ -1,6 +1,8 @@
-import { Layers, Search, TestTube, Shield, Zap, FileText, Bug, RefreshCw, Rocket } from 'lucide-react'
+import { useState } from 'react'
+import { Layers, Search, TestTube, Shield, Zap, FileText, Bug, RefreshCw, Rocket, Loader2 } from 'lucide-react'
 import { BUILTIN_TEMPLATES, executeTemplate } from '../../services/templates'
 import { useProjectStore } from '../../stores/projectStore'
+import { useNotificationStore } from '../../stores/notificationStore'
 import type { AgentTemplate, TemplateCategory } from '../../types/template'
 
 const ICON_MAP: Record<string, typeof Search> = {
@@ -25,10 +27,18 @@ const CATEGORY_COLORS: Record<TemplateCategory, string> = {
 
 export function TemplateSelector() {
   const project = useProjectStore((s) => s.getActiveProject())
+  const [loadingId, setLoadingId] = useState<string | null>(null)
 
   const handleSelect = async (template: AgentTemplate) => {
-    if (!project) return
-    await executeTemplate(template, project)
+    if (!project || loadingId) return
+    setLoadingId(template.id)
+    try {
+      await executeTemplate(template, project)
+    } catch (err) {
+      useNotificationStore.getState().addNotification('error', `Template fehlgeschlagen: ${err}`)
+    } finally {
+      setLoadingId(null)
+    }
   }
 
   // Group by category
@@ -59,10 +69,15 @@ export function TemplateSelector() {
                       <button
                         key={template.id}
                         onClick={() => handleSelect(template)}
-                        className="glass neon-hover rounded-xl p-4 text-left group transition-all"
+                        disabled={loadingId !== null}
+                        className="glass neon-hover rounded-xl p-4 text-left group transition-all disabled:opacity-50"
                       >
                         <div className="flex items-center gap-2.5 mb-2">
-                          <Icon className={`w-4 h-4 ${CATEGORY_COLORS[template.category]}`} />
+                          {loadingId === template.id ? (
+                            <Loader2 className="w-4 h-4 text-accent animate-spin" />
+                          ) : (
+                            <Icon className={`w-4 h-4 ${CATEGORY_COLORS[template.category]}`} />
+                          )}
                           <span className="text-sm text-text-primary font-medium">{template.name}</span>
                         </div>
                         <p className="text-[10px] text-text-muted mb-2">{template.description}</p>
