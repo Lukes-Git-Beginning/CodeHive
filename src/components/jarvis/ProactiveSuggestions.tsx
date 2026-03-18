@@ -210,7 +210,7 @@ export function ProactiveSuggestions() {
   if (visible.length === 0 || isProcessing) return null
 
   return (
-    <div className="flex flex-wrap gap-2 justify-center mb-5 max-w-2xl">
+    <div className="flex flex-wrap gap-2 justify-center mb-10 max-w-2xl">
       <AnimatePresence>
         {visible.map((suggestion) => {
           const Icon = suggestion.icon

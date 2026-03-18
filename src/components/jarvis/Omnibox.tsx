@@ -70,7 +70,7 @@ export function Omnibox() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`w-full max-w-2xl transition-all duration-300 rounded-lg ${
+      className={`w-full max-w-2xl mx-auto mt-4 transition-all duration-300 rounded-lg ${
         isFocused ? 'ring-1 ring-accent/40 shadow-[0_0_20px_rgba(0,212,255,0.1)]' : ''
       }`}
       style={{
