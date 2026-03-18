@@ -141,7 +141,8 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={(e) => handleExportProject(project.id, e)}
-                  className="p-1 rounded text-text-muted hover:text-cyan hover:bg-cyan/10 transition-all opacity-0 group-hover:opacity-100"
+                  className="p-1 rounded text-text-muted hover:text-cyan hover:bg-cyan/10 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  aria-label="Projekt exportieren"
                   title="Projekt exportieren"
                 >
                   <Download className="w-3.5 h-3.5" />

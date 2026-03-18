@@ -234,6 +234,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
             <button
               onClick={handleAddToRoadmap}
               disabled={addingTasks || run.agents.length === 0}
+              aria-busy={addingTasks}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg
                          bg-accent/15 border border-accent/30 text-accent text-xs font-hud
                          hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)]

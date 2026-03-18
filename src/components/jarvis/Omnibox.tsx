@@ -12,6 +12,7 @@ export function Omnibox() {
   const [input, setInput] = useState('')
   const [mode, setMode] = useState<'orchestrator' | 'direct'>('orchestrator')
   const [isFocused, setIsFocused] = useState(false)
+  const [hasError, setHasError] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const activeProject = useProjectStore((s) => s.getActiveProject())
   const isProcessing = useChatStore((s) => s.isProcessing)
@@ -48,6 +49,7 @@ export function Omnibox() {
         await orchestrate(prompt, activeProject)
       }
     } catch (err) {
+      setHasError(true)
       addMessage({
         id: crypto.randomUUID(),
         role: 'system',
@@ -72,12 +74,13 @@ export function Omnibox() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={`w-full max-w-2xl mx-auto transition-all duration-300 rounded-lg ${
+        hasError ? 'ring-1 ring-danger/50 shadow-[0_0_20px_rgba(255,51,102,0.1)]' :
         isFocused ? 'ring-1 ring-accent/40 shadow-[0_0_20px_rgba(0,212,255,0.1)]' : ''
       }`}
       style={{
         background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.04), rgba(26, 143, 255, 0.02))',
         backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(0, 212, 255, 0.1)',
+        border: hasError ? '1px solid rgba(255, 51, 102, 0.2)' : '1px solid rgba(0, 212, 255, 0.1)',
       }}
     >
       {/* Single-row input with prompt icon */}
@@ -90,7 +93,7 @@ export function Omnibox() {
         <textarea
           ref={textareaRef}
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => { setInput(e.target.value); if (hasError) setHasError(false) }}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
@@ -102,6 +105,7 @@ export function Omnibox() {
                 : 'Direct chat with Metis...'
           }
           disabled={!activeProject || isProcessing}
+          aria-label={!activeProject ? 'Eingabe deaktiviert — kein Projekt ausgewählt' : isProcessing ? 'Eingabe deaktiviert — Verarbeitung läuft' : 'Nachricht an Metis'}
           className="flex-1 bg-transparent text-text-primary placeholder:text-text-muted/50 outline-none resize-none font-mono text-sm min-h-[24px] max-h-[200px] overflow-hidden disabled:opacity-30 py-0.5"
           rows={1}
         />

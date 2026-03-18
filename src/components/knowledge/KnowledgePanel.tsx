@@ -211,6 +211,7 @@ export function KnowledgePanel() {
               if (!e.target.value.trim()) setSearchResults(null)
             }}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            aria-label="Knowledge durchsuchen"
             placeholder="Knowledge durchsuchen (FTS5)..."
             className="flex-1 glass rounded-lg px-3 py-2 text-xs text-text-primary placeholder-text-muted
                        focus:outline-none focus:border-accent/40 transition-all font-mono"

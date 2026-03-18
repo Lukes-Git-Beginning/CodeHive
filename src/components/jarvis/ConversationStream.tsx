@@ -34,6 +34,9 @@ export function ConversationStream() {
     >
       <div
         ref={scrollRef}
+        role="log"
+        aria-live="polite"
+        aria-label="Konversation"
         className="flex flex-col gap-1.5 max-h-[30vh] overflow-y-auto pr-2 py-2 rounded-lg"
         style={{
           background: 'rgba(0, 0, 0, 0.2)',

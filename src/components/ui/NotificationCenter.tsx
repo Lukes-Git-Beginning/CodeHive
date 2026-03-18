@@ -120,6 +120,7 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
                 <button
                   key={key}
                   onClick={() => setFilter(key)}
+                  aria-current={filter === key ? 'true' : undefined}
                   className={`text-[9px] font-hud px-2.5 py-1 rounded-full transition-colors ${
                     filter === key ? 'bg-accent/20 text-accent' : 'bg-bg-surface text-text-muted hover:text-text-secondary'
                   }`}
@@ -158,7 +159,8 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
                             </div>
                             <button
                               onClick={() => deleteNotification(n.id)}
-                              className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-danger/20 text-text-muted hover:text-danger transition-all"
+                              aria-label="Löschen"
+                              className="p-1 rounded opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 hover:bg-danger/20 text-text-muted hover:text-danger transition-all"
                             >
                               <X className="w-3 h-3" />
                             </button>

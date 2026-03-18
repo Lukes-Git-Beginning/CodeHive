@@ -32,6 +32,7 @@ function AgentCard({ agent, expanded = false }: { agent: AgentInstance; expanded
         <>
           <button
             onClick={() => setShowOutput(!showOutput)}
+            aria-expanded={showOutput}
             className="flex items-center gap-1 text-[9px] text-text-muted hover:text-accent transition-colors mb-1"
           >
             {showOutput ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
@@ -69,6 +70,7 @@ function RunHistoryCard({ run }: { run: AgentRun }) {
     <div className="glass rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
         className="w-full p-3 text-left hover:bg-bg-hover transition-colors"
       >
         <div className="flex items-center justify-between mb-1">

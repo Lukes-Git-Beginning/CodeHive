@@ -35,9 +35,18 @@ export function RoadmapView() {
   const loadAssignments = useTeamStore((s) => s.loadAssignments)
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [addingToColumn, setAddingToColumn] = useState<string | null>(null)
+  const [executingTaskId, setExecutingTaskId] = useState<string | null>(null)
 
   // Load team data
-  useEffect(() => { loadMembers(); loadAssignments() }, [])
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      await loadMembers()
+      if (mounted) await loadAssignments()
+    }
+    load()
+    return () => { mounted = false }
+  }, [])
 
   const projectTasks = tasks.filter((t) => t.projectId === activeProjectId)
 
@@ -68,6 +77,7 @@ export function RoadmapView() {
       useNotificationStore.getState().addNotification('warning', 'Metis arbeitet bereits an einer Aufgabe.')
       return
     }
+    setExecutingTaskId(task.id)
 
     // Mark as in_progress
     updateTask(task.id, { status: 'in_progress' })
@@ -101,6 +111,7 @@ export function RoadmapView() {
       updateTask(task.id, { status: 'planned' })
     } finally {
       setProcessing(false)
+      setExecutingTaskId(null)
     }
   }
 
@@ -157,6 +168,7 @@ export function RoadmapView() {
                           type="text"
                           value={newTaskTitle}
                           onChange={(e) => setNewTaskTitle(e.target.value)}
+                          aria-label="Neuer Task-Titel"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') handleAddTask(col.id)
                             if (e.key === 'Escape') setAddingToColumn(null)
@@ -246,11 +258,12 @@ export function RoadmapView() {
                         <button
                           onClick={() => handleExecuteTask(task)}
                           disabled={isRunning}
+                          aria-label="Metis ausführen lassen"
                           className="text-[9px] font-hud text-accent bg-accent/10 hover:bg-accent/20 px-2 py-0.5 rounded flex items-center gap-0.5 disabled:opacity-30"
                           title="Metis ausführen lassen"
                         >
-                          <Play className="w-2.5 h-2.5" />
-                          Ausführen
+                          {executingTaskId === task.id ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Play className="w-2.5 h-2.5" />}
+                          {executingTaskId === task.id ? 'Läuft...' : 'Ausführen'}
                         </button>
                       )}
 
