@@ -1,115 +1,74 @@
-import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useRef, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useChatStore } from '../../stores/chatStore'
-import { useAgentStore } from '../../stores/agentStore'
-import { ChevronUp, ChevronDown, User, Cpu, AlertCircle, Zap, GitMerge } from 'lucide-react'
+import { Zap } from 'lucide-react'
 
-const ROLE_CONFIG: Record<string, { icon: typeof Cpu; color: string }> = {
-  user: { icon: User, color: 'text-cyan' },
-  orchestrator: { icon: GitMerge, color: 'text-violet' },
-  agent: { icon: Cpu, color: 'text-accent' },
-  system: { icon: AlertCircle, color: 'text-warning' },
+const ROLE_LABELS: Record<string, { prefix: string; color: string }> = {
+  user: { prefix: 'User', color: 'text-cyan' },
+  orchestrator: { prefix: 'METIS', color: 'text-violet' },
+  agent: { prefix: 'METIS', color: 'text-accent' },
+  system: { prefix: 'System', color: 'text-warning' },
 }
 
 export function ConversationStream() {
   const messages = useChatStore((s) => s.messages)
   const isProcessing = useChatStore((s) => s.isProcessing)
-  const phase = useAgentStore((s) => s.phase)
-  const [isExpanded, setIsExpanded] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
-
-  // Auto-expand when agents start working
-  useEffect(() => {
-    if (phase !== 'idle' && phase !== 'done' && messages.length > 0) {
-      setIsExpanded(true)
-    }
-  }, [phase, messages.length])
 
   // Auto-scroll to bottom
   useEffect(() => {
-    if (isExpanded && scrollRef.current) {
+    if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
-  }, [messages, isExpanded])
+  }, [messages])
 
   if (messages.length === 0 && !isProcessing) return null
 
   return (
-    <div className="w-full max-w-3xl mt-4 flex flex-col items-center">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className={`flex items-center gap-2 text-[10px] font-hud text-text-muted hover:text-accent transition-colors py-2 ${isExpanded ? 'holo-text' : ''}`}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="w-full max-w-2xl mt-3"
+    >
+      <div
+        ref={scrollRef}
+        className="flex flex-col gap-1.5 max-h-[30vh] overflow-y-auto pr-2 py-2 rounded-lg"
+        style={{
+          background: 'rgba(0, 0, 0, 0.2)',
+          border: '1px solid rgba(0, 212, 255, 0.05)',
+        }}
       >
-        {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-        {isExpanded ? 'Historie ausblenden' : `Historie anzeigen (${messages.length})`}
-        {isProcessing && (
-          <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse" />
-        )}
-      </button>
+        {messages.map((msg) => {
+          const config = ROLE_LABELS[msg.role] || ROLE_LABELS.system
 
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="w-full overflow-hidden"
-          >
-            <div ref={scrollRef} className="flex flex-col gap-4 max-h-[25vh] overflow-y-auto pr-2 pb-4">
-              {messages.map((msg) => {
-                const config = ROLE_CONFIG[msg.role] || ROLE_CONFIG.system
-                const Icon = config.icon
-                const isUser = msg.role === 'user'
-
-                return (
-                  <div key={msg.id} className={`flex gap-2.5 ${isUser ? 'justify-end' : ''}`}>
-                    {!isUser && (
-                      <div className="w-6 h-6 rounded-sm glass flex items-center justify-center shrink-0 mt-0.5">
-                        <Icon className={`w-3 h-3 ${config.color}`} />
-                      </div>
-                    )}
-                    <div className={`glass px-5 py-3.5 rounded-sm max-w-[80%] ${
-                      isUser ? 'bg-cyan/5 border-cyan/20' : ''
-                    }`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`font-hud text-[9px] ${config.color}`}>
-                          {msg.role === 'user' ? 'You' : msg.role}
-                        </span>
-                        <span className="text-[9px] text-text-muted font-mono">
-                          {new Date(msg.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <div className="text-xs text-text-primary leading-relaxed prose prose-invert prose-sm max-w-none
-                                    prose-code:text-cyan prose-code:text-[10px] prose-pre:bg-bg-deep/50 prose-pre:rounded-lg
-                                    prose-p:my-0.5">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                      </div>
-                    </div>
-                    {isUser && (
-                      <div className="w-6 h-6 rounded-sm glass flex items-center justify-center shrink-0 mt-0.5">
-                        <Icon className={`w-3 h-3 ${config.color}`} />
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-
-              {isProcessing && (
-                <div className="flex gap-2.5">
-                  <div className="w-6 h-6 rounded-sm glass flex items-center justify-center shrink-0">
-                    <Zap className="w-3 h-3 text-accent animate-pulse" />
-                  </div>
-                  <div className="glass px-3.5 py-2.5 rounded-sm">
-                    <div className="h-px w-10 bg-gradient-to-r from-transparent via-accent to-transparent animate-pulse" />
-                  </div>
-                </div>
-              )}
+          return (
+            <div key={msg.id} className="flex gap-2 px-3 py-1 hover:bg-white/[0.02] transition-colors">
+              <span className={`font-hud text-[9px] shrink-0 w-14 text-right ${config.color}`}>
+                ({config.prefix})
+              </span>
+              <div className="flex-1 text-[11px] text-text-primary leading-relaxed font-mono prose prose-invert prose-sm max-w-none
+                            prose-code:text-cyan prose-code:text-[10px] prose-pre:bg-bg-deep/50 prose-pre:rounded-lg
+                            prose-p:my-0 prose-p:leading-relaxed">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+              </div>
             </div>
-          </motion.div>
+          )
+        })}
+
+        {isProcessing && (
+          <div className="flex gap-2 px-3 py-1">
+            <span className="font-hud text-[9px] shrink-0 w-14 text-right text-accent">
+              (METIS)
+            </span>
+            <div className="flex items-center gap-2">
+              <Zap className="w-3 h-3 text-accent animate-pulse" />
+              <div className="h-px w-16 bg-gradient-to-r from-accent/60 via-accent to-accent/60 animate-pulse" />
+            </div>
+          </div>
         )}
-      </AnimatePresence>
-    </div>
+      </div>
+    </motion.div>
   )
 }

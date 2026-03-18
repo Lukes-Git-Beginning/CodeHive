@@ -31,15 +31,17 @@ import { useSchedulerStore } from './stores/schedulerStore'
 import { useThemeStore } from './stores/themeStore'
 import { NotificationCenter } from './components/ui/NotificationCenter'
 import { ShortcutOverlay } from './components/ui/ShortcutOverlay'
-import { BrainCircuit, Settings, FolderPlus, Map, Brain, LayoutDashboard, X, Bell } from 'lucide-react'
+import { BrainCircuit, Settings, FolderPlus, Map, Brain, LayoutDashboard, X, Bell, Cpu, ScrollText } from 'lucide-react'
 
 // Lazy-loaded panels (opened as overlays)
 const RoadmapView = lazy(() => import('./components/roadmap/RoadmapView').then(m => ({ default: m.RoadmapView })))
 const KnowledgePanel = lazy(() => import('./components/knowledge/KnowledgePanel').then(m => ({ default: m.KnowledgePanel })))
 const ProjectDashboard = lazy(() => import('./components/dashboard/MetricsDashboard').then(m => ({ default: m.MetricsDashboard })))
 const TemplateSelectorPanel = lazy(() => import('./components/ui/TemplateSelector').then(m => ({ default: m.TemplateSelector })))
+const AgentsPanel = lazy(() => import('./components/agents/AgentsPanel').then(m => ({ default: m.AgentsPanel })))
+const LogsPanel = lazy(() => import('./components/logs/LogsPanel').then(m => ({ default: m.LogsPanel })))
 
-type OverlayPanel = 'roadmap' | 'knowledge' | 'dashboard' | 'templates' | null
+type OverlayPanel = 'roadmap' | 'knowledge' | 'dashboard' | 'templates' | 'agents' | 'logs' | null
 
 function App() {
   const [showWizard, setShowWizard] = useState(false)
@@ -258,7 +260,7 @@ function App() {
       />
 
       {/* Main Interaction Area */}
-      <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-4 pt-20 pb-14 overflow-hidden">
+      <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-4 pt-14 pb-12 overflow-hidden">
         <ErrorBoundary label="Metis">
           {/* Thought Nodes */}
           <ThoughtNodes onOpenMindPalace={() => setIsMindPalaceOpen(true)} />
@@ -359,6 +361,8 @@ function App() {
                   {overlayPanel === 'knowledge' && 'Knowledge Base'}
                   {overlayPanel === 'dashboard' && 'Dashboard'}
                   {overlayPanel === 'templates' && 'Agent Templates'}
+                  {overlayPanel === 'agents' && 'Agents'}
+                  {overlayPanel === 'logs' && 'Run Logs'}
                 </span>
                 <button
                   onClick={() => setOverlayPanel(null)}
@@ -374,6 +378,8 @@ function App() {
                     {overlayPanel === 'knowledge' && <KnowledgePanel />}
                     {overlayPanel === 'dashboard' && <ProjectDashboard />}
                     {overlayPanel === 'templates' && <TemplateSelectorPanel />}
+                    {overlayPanel === 'agents' && <AgentsPanel />}
+                    {overlayPanel === 'logs' && <LogsPanel />}
                   </Suspense>
                 </ErrorBoundary>
               </div>
@@ -382,46 +388,49 @@ function App() {
         )}
       </AnimatePresence>
 
-      {/* Quick-Access Bar (above StatusBar) */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5">
-        <button
-          onClick={() => setOverlayPanel('dashboard')}
-          className={`p-2.5 rounded-sm transition-all ${overlayPanel === 'dashboard' ? 'glass-holo text-accent shadow-[0_0_15px_rgba(0,212,255,0.2)]' : 'glass-holo text-text-muted hover:text-accent hover:shadow-[0_0_10px_rgba(0,212,255,0.15)]'}`}
-          title="Dashboard (Ctrl+D)"
-        >
-          <LayoutDashboard className="w-4.5 h-4.5" />
-        </button>
-        <button
-          onClick={() => setOverlayPanel('roadmap')}
-          className={`p-2.5 rounded-sm transition-all ${overlayPanel === 'roadmap' ? 'glass-holo text-accent shadow-[0_0_15px_rgba(0,212,255,0.2)]' : 'glass-holo text-text-muted hover:text-accent hover:shadow-[0_0_10px_rgba(0,212,255,0.15)]'}`}
-          title="Roadmap (Ctrl+R)"
-        >
-          <Map className="w-4.5 h-4.5" />
-        </button>
-        <button
-          onClick={() => setOverlayPanel('knowledge')}
-          className={`p-2.5 rounded-sm transition-all ${overlayPanel === 'knowledge' ? 'glass-holo text-accent shadow-[0_0_15px_rgba(0,212,255,0.2)]' : 'glass-holo text-text-muted hover:text-accent hover:shadow-[0_0_10px_rgba(0,212,255,0.15)]'}`}
-          title="Knowledge (Ctrl+K)"
-        >
-          <Brain className="w-4.5 h-4.5" />
-        </button>
-      </div>
+      {/* Bottom Navigation Bar */}
+      <div className="absolute bottom-0 w-full h-10 z-40 flex items-center justify-between px-4"
+        style={{
+          background: 'linear-gradient(0deg, rgba(10, 14, 39, 0.95) 0%, rgba(10, 14, 39, 0.7) 100%)',
+          borderTop: '1px solid rgba(0, 212, 255, 0.08)',
+        }}
+      >
+        {/* Left: Navigation tabs */}
+        <div className="flex items-center gap-0.5">
+          {([
+            { id: 'dashboard' as const, label: 'DASHBOARD', icon: LayoutDashboard },
+            { id: 'roadmap' as const, label: 'ROADMAP', icon: Map },
+            { id: 'knowledge' as const, label: 'KNOWLEDGE', icon: Brain },
+            { id: 'agents' as const, label: 'AGENTS', icon: Cpu },
+            { id: 'logs' as const, label: 'LOGS', icon: ScrollText },
+          ]).map((tab) => {
+            const isTabActive = overlayPanel === tab.id
+            const Icon = tab.icon
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setOverlayPanel(isTabActive ? null : tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition-all font-hud text-[9px] tracking-wider ${
+                  isTabActive
+                    ? 'text-accent bg-accent/10 shadow-[0_0_10px_rgba(0,212,255,0.1)]'
+                    : 'text-text-muted hover:text-text-secondary hover:bg-white/5'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
 
-      {/* Status Bar */}
-      <div className="absolute bottom-0 w-full h-8 hud-panel flex items-center justify-between px-4 z-30 border-t border-cyan/10">
-        <span className="text-[10px] font-hud text-text-muted hud-brackets" style={{ padding: '0 8px' }}>METIS v1.0</span>
-        <div className="flex items-center gap-4">
-          {activeProject && (
-            <span className="text-[10px] font-mono text-text-muted">
-              {activeProject.name}
-              {phase !== 'idle' && phase !== 'done' && (
-                <span className="text-cyan ml-2 holo-text">{phase.toUpperCase().replace('_', ' ')}</span>
-              )}
-            </span>
-          )}
-          <span className="flex items-center gap-1.5 text-[10px] font-hud text-accent animate-holo-flicker">
+        {/* Right: Status */}
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5 text-[9px] font-hud text-accent">
             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            ONLINE
+            API: OK
+          </span>
+          <span className="text-[9px] font-mono text-text-muted">
+            {new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
       </div>

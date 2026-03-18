@@ -4,14 +4,14 @@ import { Cpu, Search, Shield, Wrench, Eye, Code } from 'lucide-react'
 import type { AgentInstance } from '../../types/agent'
 
 const ROLE_CONFIG: Record<string, { icon: typeof Cpu; label: string }> = {
-  orchestrator: { icon: Search, label: 'ORC' },
-  frontend: { icon: Eye, label: 'FRN' },
-  backend: { icon: Wrench, label: 'BAK' },
-  testing: { icon: Shield, label: 'TST' },
-  architect: { icon: Code, label: 'ARC' },
-  devops: { icon: Wrench, label: 'DEV' },
-  security: { icon: Shield, label: 'SEC' },
-  uiux: { icon: Eye, label: 'UIX' },
+  orchestrator: { icon: Search, label: 'ORCHESTRATOR' },
+  frontend: { icon: Eye, label: 'FRONTEND' },
+  backend: { icon: Wrench, label: 'BACKEND' },
+  testing: { icon: Shield, label: 'TESTING' },
+  architect: { icon: Code, label: 'ARCHITECT' },
+  devops: { icon: Wrench, label: 'DEVOPS' },
+  security: { icon: Shield, label: 'SECURITY' },
+  uiux: { icon: Eye, label: 'UI/UX' },
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -20,6 +20,14 @@ const STATUS_COLORS: Record<string, string> = {
   done: 'rgba(255,255,255,0.25)',
   error: '#ff3366',
   idle: 'rgba(255,255,255,0.15)',
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  working: 'Active',
+  thinking: 'Active',
+  done: 'Done',
+  error: 'Error',
+  idle: 'Idle',
 }
 
 interface ThoughtNodesProps {
@@ -37,12 +45,12 @@ function Badge({
   radius: number
   onOpenMindPalace?: () => void
 }) {
-  const config = ROLE_CONFIG[agent.role] || { icon: Cpu, label: 'AGT' }
+  const config = ROLE_CONFIG[agent.role] || { icon: Cpu, label: agent.role.toUpperCase() }
   const Icon = config.icon
   const color = STATUS_COLORS[agent.status] || STATUS_COLORS.idle
+  const statusLabel = STATUS_LABELS[agent.status] || 'Idle'
   const isActive = agent.status === 'working' || agent.status === 'thinking'
 
-  // Calculate position on orbit circle
   const x = Math.cos((angle * Math.PI) / 180) * radius
   const y = Math.sin((angle * Math.PI) / 180) * radius
 
@@ -54,8 +62,8 @@ function Badge({
       transition={{ type: 'spring', stiffness: 200, damping: 20 }}
       className="absolute pointer-events-auto cursor-pointer"
       style={{
-        left: `calc(50% + ${x}px - 24px)`,
-        top: `calc(50% + ${y}px - 24px)`,
+        left: `calc(50% + ${x}px - 44px)`,
+        top: `calc(50% + ${y}px - 28px)`,
       }}
       onClick={onOpenMindPalace}
       title={`${agent.role}: ${agent.currentTask?.slice(0, 80) || 'Idle'}`}
@@ -63,45 +71,51 @@ function Badge({
       {/* Glow ring for active agents */}
       {isActive && (
         <motion.div
-          animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0.1, 0.4] }}
+          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.1, 0.3] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="absolute inset-0"
+          className="absolute inset-[-4px] rounded-lg"
           style={{
-            backgroundColor: `${color}20`,
+            backgroundColor: `${color}15`,
             filter: 'blur(8px)',
-            clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
           }}
         />
       )}
 
-      {/* Badge circle — hexagonal */}
+      {/* Badge container — wider, with data */}
       <motion.div
         animate={isActive ? {
-          boxShadow: [`0 0 6px ${color}40`, `0 0 14px ${color}60`, `0 0 6px ${color}40`],
+          boxShadow: [`0 0 6px ${color}30`, `0 0 14px ${color}50`, `0 0 6px ${color}30`],
         } : {}}
         transition={{ duration: 1.5, repeat: Infinity }}
-        className="relative w-12 h-12 glass-elevated flex flex-col items-center justify-center gap-0.5"
+        className="relative glass-elevated rounded-lg px-3 py-2 flex items-center gap-2.5"
         style={{
-          borderColor: `${color}50`,
-          borderWidth: '1.5px',
-          clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+          borderColor: `${color}40`,
+          borderWidth: '1px',
+          minWidth: 88,
         }}
       >
-        <Icon className="w-4 h-4" style={{ color }} />
-        <span className="text-[7px] font-hud leading-none" style={{ color }}>
-          {config.label}
-        </span>
-      </motion.div>
+        {/* Icon */}
+        <div className="w-7 h-7 rounded flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `${color}15` }}
+        >
+          <Icon className="w-3.5 h-3.5" style={{ color }} />
+        </div>
 
-      {/* Pulse dot */}
-      {isActive && (
-        <motion.div
-          animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
-          transition={{ duration: 1, repeat: Infinity }}
-          className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full"
-          style={{ backgroundColor: color }}
-        />
-      )}
+        {/* Info */}
+        <div className="flex flex-col min-w-0">
+          <span className="text-[7px] font-hud leading-tight text-text-primary truncate">
+            {config.label}
+          </span>
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'animate-pulse' : ''}`}
+              style={{ backgroundColor: color }}
+            />
+            <span className="text-[7px] font-mono" style={{ color, opacity: 0.8 }}>
+              {statusLabel}
+            </span>
+          </div>
+        </div>
+      </motion.div>
     </motion.div>
   )
 }
@@ -114,14 +128,13 @@ export function ThoughtNodes({ onOpenMindPalace }: ThoughtNodesProps) {
 
   if (isIdle || agents.length === 0) return null
 
-  // Distribute agents evenly around the orbit
-  const radius = 150
-  const startAngle = -90 // Start from top
+  const radius = 190
+  const startAngle = -90
   const angleStep = agents.length > 1 ? 360 / agents.length : 0
 
   return (
     <div className="absolute inset-0 pointer-events-none z-10">
-      {/* Orbit path (subtle, slowly rotating) */}
+      {/* Orbit path */}
       <motion.div
         animate={{ rotate: 360 }}
         transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
@@ -131,15 +144,15 @@ export function ThoughtNodes({ onOpenMindPalace }: ThoughtNodesProps) {
           top: `calc(50% - ${radius}px)`,
           width: radius * 2,
           height: radius * 2,
-          borderColor: 'rgba(0, 212, 255, 0.06)',
+          borderColor: 'rgba(0, 212, 255, 0.04)',
         }}
       />
 
-      {/* Connection lines from center to each badge */}
+      {/* Connection lines */}
       {agents.map((agent, i) => {
-        const angle = startAngle + i * angleStep
+        const lineAngle = startAngle + i * angleStep
         const color = STATUS_COLORS[agent.status] || STATUS_COLORS.idle
-        const lineLength = radius - 24 // minus badge radius
+        const lineLength = radius - 30
         return (
           <div
             key={`line-${agent.id}`}
@@ -150,8 +163,8 @@ export function ThoughtNodes({ onOpenMindPalace }: ThoughtNodesProps) {
               width: `${lineLength}px`,
               height: '1px',
               transformOrigin: '0 0',
-              transform: `rotate(${angle}deg)`,
-              background: `linear-gradient(90deg, transparent, ${color}30)`,
+              transform: `rotate(${lineAngle}deg)`,
+              background: `linear-gradient(90deg, transparent, ${color}20)`,
             }}
           />
         )

@@ -206,11 +206,11 @@ export function ProactiveSuggestions() {
     setDismissed((prev) => new Set(prev).add(id))
   }
 
-  const visible = suggestions.filter((s) => !dismissed.has(s.id)).slice(0, 2)
+  const visible = suggestions.filter((s) => !dismissed.has(s.id)).slice(0, 3)
   if (visible.length === 0 || isProcessing) return null
 
   return (
-    <div className="w-full max-w-lg flex flex-col gap-2.5 items-center mb-4">
+    <div className="flex flex-wrap gap-2 justify-center mb-5 max-w-2xl">
       <AnimatePresence>
         {visible.map((suggestion) => {
           const Icon = suggestion.icon
@@ -219,31 +219,27 @@ export function ProactiveSuggestions() {
           return (
             <motion.div
               key={suggestion.id}
-              initial={{ opacity: 0, y: 15, scale: 0.95, filter: 'blur(4px)' }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -15, scale: 0.9, filter: 'blur(4px)' }}
-              className="hud-panel hud-brackets px-4 py-3 flex items-center justify-between gap-4 w-full"
+              initial={{ opacity: 0, y: 10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="glass-holo rounded-full px-4 py-2 flex items-center gap-2.5 text-xs group hover:border-accent/30 transition-all"
             >
-              <div className="flex items-center gap-3">
-                <Icon className={`w-4 h-4 shrink-0 ${color}`} />
-                <span className="text-xs text-text-primary">{suggestion.text}</span>
-              </div>
-              <div className="flex gap-1.5 shrink-0">
-                <button
-                  onClick={() => handleAccept(suggestion)}
-                  className="p-1.5 rounded-md hover:bg-accent/20 text-text-secondary hover:text-accent transition-colors"
-                  title="Ausführen"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => handleDismiss(suggestion.id)}
-                  className="p-1.5 rounded-md hover:bg-danger/20 text-text-secondary hover:text-danger transition-colors"
-                  title="Verwerfen"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <Icon className={`w-3.5 h-3.5 shrink-0 ${color}`} />
+              <span className="text-text-primary text-[11px]">{suggestion.text}</span>
+              <button
+                onClick={() => handleAccept(suggestion)}
+                className="p-1 rounded-full hover:bg-accent/20 text-text-muted hover:text-accent transition-colors"
+                title="Ausführen"
+              >
+                <Check className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => handleDismiss(suggestion.id)}
+                className="p-1 rounded-full hover:bg-danger/20 text-text-muted hover:text-danger transition-colors"
+                title="Verwerfen"
+              >
+                <X className="w-3 h-3" />
+              </button>
             </motion.div>
           )
         })}
