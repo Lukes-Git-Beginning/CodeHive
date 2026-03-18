@@ -196,7 +196,7 @@ export function MetricsDashboard() {
               <Heart className="w-3 h-3 text-text-muted" />
               <span className="font-hud text-[9px] text-text-muted">Systemgesundheit</span>
             </div>
-            <MiniDonut value={metricsHealthScore} color={hColor} size={56} />
+            <MiniDonut value={metricsHealthScore} color={hColor} size={80} />
           </div>
 
           {/* Success Rate */}
@@ -205,7 +205,7 @@ export function MetricsDashboard() {
               <TrendingUp className="w-3 h-3 text-text-muted" />
               <span className="font-hud text-[9px] text-text-muted">Erfolgsrate</span>
             </div>
-            <MiniDonut value={metricsSuccessRate} color="var(--color-accent)" size={56} />
+            <MiniDonut value={metricsSuccessRate} color="var(--color-accent)" size={80} />
             <span className="text-[9px] text-text-muted font-mono">
               {metricsCompletedRuns}/{metricsCompletedRuns + metricsFailedRuns} Runs
             </span>

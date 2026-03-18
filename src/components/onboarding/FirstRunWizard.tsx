@@ -61,7 +61,7 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         <Sparkles className="w-10 h-10 text-accent" />
       </motion.div>
       <div>
-        <h1 className="font-hud text-lg text-accent holo-text mb-2">Willkommen bei Metis</h1>
+        <h1 className="font-hud text-lg text-accent holo-text mb-2">Welcome to METIS</h1>
         <p className="text-text-secondary text-sm max-w-md">
           Dein persönlicher AI-Orchestrator. Metis plant, delegiert und verifiziert deine Aufgaben mit mehreren spezialisierten Agenten.
         </p>
@@ -151,7 +151,23 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         </div>
 
         {/* Step content */}
-        <div className="hud-panel hud-brackets p-8 min-h-[300px] flex items-center justify-center">
+        <div className="hud-panel hud-brackets p-8 min-h-[300px] flex items-center justify-center relative overflow-hidden"
+          style={{
+            background: `
+              radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.4), transparent),
+              radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,0.3), transparent),
+              radial-gradient(1px 1px at 80% 20%, rgba(255,255,255,0.5), transparent),
+              radial-gradient(1px 1px at 10% 80%, rgba(255,255,255,0.3), transparent),
+              radial-gradient(1px 1px at 40% 50%, rgba(255,255,255,0.4), transparent),
+              radial-gradient(1px 1px at 90% 60%, rgba(255,255,255,0.2), transparent),
+              radial-gradient(1px 1px at 30% 10%, rgba(255,255,255,0.3), transparent),
+              radial-gradient(1px 1px at 70% 90%, rgba(255,255,255,0.4), transparent),
+              radial-gradient(1px 1px at 50% 40%, rgba(0,212,255,0.3), transparent),
+              radial-gradient(1px 1px at 15% 55%, rgba(0,212,255,0.2), transparent),
+              linear-gradient(135deg, rgba(0, 212, 255, 0.04), rgba(26, 143, 255, 0.02))
+            `,
+          }}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={step}

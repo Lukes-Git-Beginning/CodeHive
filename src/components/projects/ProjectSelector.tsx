@@ -9,6 +9,23 @@ import { open } from '@tauri-apps/plugin-dialog'
 import type { Project } from '../../types/project'
 import { GlowButton } from '../ui/GlowButton'
 
+const TECH_COLORS: Record<string, string> = {
+  React: 'bg-cyan/15 text-cyan',
+  TypeScript: 'bg-holo-blue/15 text-holo-blue',
+  JavaScript: 'bg-warning/15 text-warning',
+  Python: 'bg-warning/15 text-warning',
+  Rust: 'bg-danger/15 text-danger',
+  Go: 'bg-cyan/15 text-cyan',
+  'Node.js': 'bg-success/15 text-success',
+  Flask: 'bg-success/15 text-success',
+  'Tailwind CSS': 'bg-cyan/15 text-cyan',
+  Docker: 'bg-holo-blue/15 text-holo-blue',
+  Vue: 'bg-success/15 text-success',
+  Angular: 'bg-danger/15 text-danger',
+  Svelte: 'bg-danger/15 text-danger',
+  Next: 'bg-violet/15 text-violet',
+}
+
 interface ProjectSelectorProps {
   onProjectSelect: () => void
 }
@@ -101,7 +118,7 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
         >
           <Hexagon className="w-10 h-10 text-accent" />
         </motion.div>
-        <h2 className="font-hud text-lg text-accent text-glow-green mb-2">CodeHive</h2>
+        <h2 className="font-hud text-lg text-accent holo-text mb-2">METIS</h2>
         <p className="text-sm text-text-muted max-w-md">
           Wähle ein Projekt oder erstelle ein neues, um mit den AI-Agenten zu arbeiten.
         </p>
@@ -139,7 +156,7 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
             {project.techStack.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2.5">
                 {project.techStack.map((tech) => (
-                  <span key={tech} className="text-[10px] bg-accent/10 text-accent/70 rounded px-1.5 py-0.5 font-mono">
+                  <span key={tech} className={`text-[10px] rounded px-1.5 py-0.5 font-mono ${TECH_COLORS[tech] || 'bg-accent/10 text-accent/70'}`}>
                     {tech}
                   </span>
                 ))}

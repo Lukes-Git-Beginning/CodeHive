@@ -131,16 +131,14 @@ export function RoadmapView() {
                     {colTasks.length}
                   </span>
                 </div>
-                {col.id === 'planned' && (
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => setAddingToColumn(col.id)}
-                    className="p-1 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </motion.button>
-                )}
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setAddingToColumn(col.id)}
+                  className="p-1 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </motion.button>
               </div>
 
               {/* Tasks */}
@@ -205,6 +203,15 @@ export function RoadmapView() {
                   >
                     <div className="flex items-center gap-2 mb-1.5">
                       <p className="text-xs text-text-primary flex-1">{task.title}</p>
+                      {task.priority !== undefined && (
+                        <span className={`text-[8px] font-hud px-1.5 py-0.5 rounded ${
+                          task.priority >= 2 ? 'bg-danger/15 text-danger' :
+                          task.priority === 1 ? 'bg-warning/15 text-warning' :
+                          'bg-success/15 text-success'
+                        }`}>
+                          {task.priority >= 2 ? 'High' : task.priority === 1 ? 'Med' : 'Low'}
+                        </span>
+                      )}
                       {assignedMember ? (
                         <div
                           className="w-4 h-4 rounded-full shrink-0 flex items-center justify-center text-[7px] font-bold text-bg-deep cursor-pointer"
