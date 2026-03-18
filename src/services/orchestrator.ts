@@ -11,6 +11,7 @@ import { ROLE_PROMPTS, getRoleForTask } from './agentRoles'
 import { generateMcpConfig } from './mcpConfig'
 import { useProfileStore } from '../stores/profileStore'
 import { useGitStore } from '../stores/gitStore'
+import { initBlackboard, formatBlackboardForPrompt, detectConflicts, extractAgentFindings } from './blackboard'
 
 // ── Types ──
 
@@ -452,12 +453,15 @@ ${task.verify ? `Verifikation: ${task.verify}` : ''}
 
 Arbeite fokussiert und effizient. Ändere nur was nötig ist.`
 
-        // Combine role-specific prompt with project context
+        // Combine role-specific prompt with project context + blackboard
+        const blackboardContext = formatBlackboardForPrompt()
         const systemPrompt = `${rolePrompt}
 
 Projekt-Kontext:
 ${brief}
-Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}`
+Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}
+${blackboardContext}
+Du kannst Findings für andere Agents markieren mit: [FINDING] ..., [WARNING] ..., [REQUEST] ...`
 
         try {
           await spawnAndWait(agentId, role, taskPrompt, project.path, systemPrompt, task.model, mcpConfigPath)
@@ -468,6 +472,25 @@ Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}`
         }
       })
     )
+
+    // Post-wave: Extract agent findings for blackboard + detect conflicts
+    const waveAgents = useAgentStore.getState().currentRun?.agents.filter(
+      (a) => wave.some((t) => a.currentTask.includes(t.name.slice(0, 30)))
+    ) || []
+
+    for (const agent of waveAgents) {
+      extractAgentFindings(agent.id, agent.role, agent.output, i)
+    }
+
+    const waveConflicts = detectConflicts(waveAgents, i)
+    if (waveConflicts.length > 0) {
+      chatStore.addMessage({
+        id: crypto.randomUUID(),
+        role: 'orchestrator',
+        content: `⚠️ ${waveConflicts.length} Dateikonflikt(e) in Wave ${i + 1}: ${waveConflicts.map((c) => c.file).join(', ')}`,
+        timestamp: new Date().toISOString(),
+      })
+    }
   }
 }
 
@@ -484,13 +507,14 @@ async function verifyWork(plan: ExecutionPlan, project: Project): Promise<void> 
     timestamp: new Date().toISOString(),
   })
 
+  const blackboardSummary = formatBlackboardForPrompt(20)
   const verifyPrompt = `Ursprüngliche Ziele:
 ${plan.goals.map((g, i) => `${i + 1}. ${g}`).join('\n')}
 
 Ausgeführte Tasks:
 ${plan.tasks.map((t) => `- ${t.name}: ${t.done}`).join('\n')}
-
-Prüfe goal-backward: Sind alle Ziele erreicht? Was fehlt?`
+${blackboardSummary}
+Prüfe goal-backward: Sind alle Ziele erreicht? Was fehlt? Berücksichtige die Blackboard-Findings und etwaige Dateikonflikte.`
 
   const agentId = crypto.randomUUID()
   const output = await spawnAndWait(
@@ -555,6 +579,9 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
     startedAt: new Date().toISOString(),
   }
   agentStore.startRun(run)
+
+  // Initialize blackboard for inter-agent communication
+  initBlackboard(run.id)
 
   try {
     // Phase 1: Plan

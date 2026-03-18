@@ -33,6 +33,27 @@ export interface AgentRun {
   finishedAt?: string
 }
 
+// ── Blackboard (Inter-Agent Communication) ──
+
+export interface BlackboardEntry {
+  id: string
+  key: string
+  value: string
+  type: 'finding' | 'warning' | 'request' | 'artifact' | 'conflict'
+  sourceAgentId: string
+  sourceRole: AgentRole | string
+  waveIndex: number
+  timestamp: string
+}
+
+export interface FileConflict {
+  file: string
+  agentIds: string[]
+  agentRoles: string[]
+  resolved: boolean
+  resolution?: string
+}
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'orchestrator' | 'agent' | 'system'
