@@ -4,6 +4,7 @@ import { useProjectStore } from '../stores/projectStore'
 import { orchestrate } from './orchestrator'
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null
+let isTickRunning = false
 
 const INTERVAL_MS: Record<ScheduleInterval, number> = {
   '15min': 15 * 60_000,
@@ -27,6 +28,9 @@ export const INTERVAL_LABELS: Record<ScheduleInterval, string> = {
 }
 
 async function tick() {
+  if (isTickRunning) return
+  isTickRunning = true
+  try {
   const project = useProjectStore.getState().getActiveProject()
   if (!project) return
 
@@ -61,6 +65,9 @@ async function tick() {
     } catch {
       // best-effort
     }
+  }
+  } finally {
+    isTickRunning = false
   }
 }
 

@@ -152,8 +152,7 @@ Erstelle einen priorisierten Plan mit konkreten Code-Änderungen.`
   try {
     await orchestrate(prompt, codehiveProject)
 
-    // Only reset counter after successful run
-    profileStore.recordRun('self-improvement', ['architect'], true)
+    // Only reset counter after successful run (recordRun is called by orchestrate internally)
     useProfileStore.setState((s) => ({
       profile: { ...s.profile, runsSinceLastSelfImprove: 0 },
     }))
@@ -167,6 +166,7 @@ Erstelle einen priorisierten Plan mit konkreten Code-Änderungen.`
       content: `Selbstverbesserung fehlgeschlagen: ${err}`,
       timestamp: new Date().toISOString(),
     })
+  } finally {
     chatStore.setProcessing(false)
   }
 }

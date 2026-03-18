@@ -22,14 +22,18 @@ export function startClipboardMonitor(onCodeDetected: (code: string) => void) {
   if (clipboardInterval) return // Already running
 
   clipboardInterval = setInterval(async () => {
-    const content = await readClipboard()
-    if (!content || content === lastClipboardContent) return
-    lastClipboardContent = content
+    try {
+      const content = await readClipboard()
+      if (!content || content === lastClipboardContent) return
+      lastClipboardContent = content
 
-    // Detect if clipboard contains code (heuristic)
-    const trimmed = content.trim()
-    if (looksLikeCode(trimmed) && trimmed.length > 30 && trimmed.length < 5000) {
-      onCodeDetected(trimmed)
+      // Detect if clipboard contains code (heuristic)
+      const trimmed = content.trim()
+      if (looksLikeCode(trimmed) && trimmed.length > 30 && trimmed.length < 5000) {
+        onCodeDetected(trimmed)
+      }
+    } catch {
+      // Clipboard access can fail silently — ignore
     }
   }, 2000) // Check every 2 seconds
 }

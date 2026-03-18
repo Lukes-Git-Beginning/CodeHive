@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { invoke } from '@tauri-apps/api/core'
 import type { ScheduledTask, ScheduleInterval } from '../types/scheduler'
 import { getNextRun, startScheduler, stopScheduler } from '../services/scheduler'
+import { useNotificationStore } from './notificationStore'
 
 interface SchedulerStore {
   tasks: ScheduledTask[]
@@ -44,18 +45,18 @@ export const useSchedulerStore = create<SchedulerStore>((set, get) => ({
     }
     try {
       await invoke('db_save_scheduled', { task })
-      set({ tasks: [...get().tasks, task] })
-    } catch (err) {
-      console.error('Failed to save scheduled task:', err)
+      set((s) => ({ tasks: [...s.tasks, task] }))
+    } catch {
+      useNotificationStore.getState().addNotification('error', 'Zeitplan konnte nicht erstellt werden.')
     }
   },
 
   removeTask: async (id) => {
     try {
       await invoke('db_delete_scheduled', { id })
-      set({ tasks: get().tasks.filter((t) => t.id !== id) })
-    } catch (err) {
-      console.error('Failed to delete scheduled task:', err)
+      set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) }))
+    } catch {
+      useNotificationStore.getState().addNotification('error', 'Zeitplan konnte nicht gelöscht werden.')
     }
   },
 
@@ -65,9 +66,9 @@ export const useSchedulerStore = create<SchedulerStore>((set, get) => ({
     const updated = { ...task, enabled: !task.enabled, updated_at: new Date().toISOString() }
     try {
       await invoke('db_save_scheduled', { task: updated })
-      set({ tasks: get().tasks.map((t) => (t.id === id ? updated : t)) })
-    } catch (err) {
-      console.error('Failed to toggle scheduled task:', err)
+      set((s) => ({ tasks: s.tasks.map((t) => (t.id === id ? updated : t)) }))
+    } catch {
+      useNotificationStore.getState().addNotification('error', 'Zeitplan konnte nicht umgeschaltet werden.')
     }
   },
 

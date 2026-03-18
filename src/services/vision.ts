@@ -63,6 +63,7 @@ Hinweis: Lies die Datei ${screenshotPath} um den Screenshot zu sehen. Nutze dein
       content: `Screenshot-Fehler: ${String(err)}`,
       timestamp: new Date().toISOString(),
     })
+  } finally {
     chatStore.setProcessing(false)
   }
 }

@@ -101,6 +101,7 @@ export async function saveProject(project: Project): Promise<void> {
     await invoke('db_save_project', { project: projectToDb(project) })
   } catch (err) {
     console.error('Failed to save project:', err)
+    throw err
   }
 }
 
@@ -109,6 +110,7 @@ export async function deleteProject(id: string): Promise<void> {
     await invoke('db_delete_project', { id })
   } catch (err) {
     console.error('Failed to delete project:', err)
+    throw err
   }
 }
 
@@ -190,27 +192,56 @@ export async function setSetting(key: string, value: string): Promise<void> {
 // ── Multi-PC Support ──
 
 export async function getMachineId(): Promise<string> {
-  return invoke('get_machine_id')
+  try {
+    return await invoke('get_machine_id')
+  } catch (err) {
+    console.error('Failed to get machine ID:', err)
+    throw err
+  }
 }
 
 export async function exportProjectBundle(projectId: string): Promise<string> {
-  return invoke('export_project_bundle', { projectId })
+  try {
+    return await invoke('export_project_bundle', { projectId })
+  } catch (err) {
+    console.error('Failed to export project bundle:', err)
+    throw err
+  }
 }
 
 export async function importProjectBundle(filePath: string): Promise<string> {
-  return invoke('import_project_bundle', { filePath })
+  try {
+    return await invoke('import_project_bundle', { filePath })
+  } catch (err) {
+    console.error('Failed to import project bundle:', err)
+    throw err
+  }
 }
 
 export async function savePathMapping(projectId: string, localPath: string): Promise<void> {
-  return invoke('save_path_mapping', { projectId, localPath })
+  try {
+    await invoke('save_path_mapping', { projectId, localPath })
+  } catch (err) {
+    console.error('Failed to save path mapping:', err)
+    throw err
+  }
 }
 
 export async function getPathForMachine(projectId: string): Promise<string | null> {
-  return invoke('get_path_for_machine', { projectId })
+  try {
+    return await invoke('get_path_for_machine', { projectId })
+  } catch {
+    return null
+  }
 }
 
 export async function updateProjectIdentifier(projectId: string, identifier: string, gitRemote: string): Promise<void> {
-  return invoke('update_project_identifier', { projectId, identifier, gitRemote })
+  try {
+    await invoke('update_project_identifier', { projectId, identifier, gitRemote })
+  } catch (err) {
+    console.error('Failed to update project identifier:', err)
+    throw err
+  }
 }
 
 /**
