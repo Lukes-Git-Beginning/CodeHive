@@ -14,6 +14,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { searchKnowledge, readClaudeMd } from './rag'
 import { useProfileStore } from '../stores/profileStore'
+import { formatGraphContextForAgent } from './codeGraph'
 import type { AgentRun } from '../types/agent'
 import type { Project } from '../types/project'
 
@@ -99,7 +100,14 @@ export async function buildAgentContext(
     }
   } catch { /* search failed */ }
 
-  // 4. User profile context
+  // 4. Code Graph context (structural dependencies for files being modified)
+  const graphContext = formatGraphContextForAgent([...task.files.modify, ...task.files.create])
+  if (graphContext && budget.used + graphContext.length < budget.max) {
+    sections.push(graphContext.trim())
+    budget.used += graphContext.length
+  }
+
+  // 5. User profile context
   const profileContext = useProfileStore.getState().getContextSummary()
   if (profileContext && budget.used + profileContext.length < budget.max) {
     sections.push(profileContext.trim())
