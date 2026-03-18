@@ -98,19 +98,17 @@ function DailyActivity({ dailyCounts }: { dailyCounts: Record<string, number> })
 
 export function MetricsDashboard() {
   const project = useProjectStore((s) => s.getActiveProject())
-  const metrics = useMetricsStore((s) => ({
-    successRate: s.successRate,
-    avgDuration: s.avgDuration,
-    healthScore: s.healthScore,
-    tokenEstimate: s.tokenEstimate,
-    totalRuns: s.totalRuns,
-    completedRuns: s.completedRuns,
-    failedRuns: s.failedRuns,
-    taskTypeDistribution: s.taskTypeDistribution,
-    durationHistory: s.durationHistory,
-    dailyRunCounts: s.dailyRunCounts,
-    loading: s.loading,
-  }))
+  const metricsSuccessRate = useMetricsStore((s) => s.successRate)
+  const metricsAvgDuration = useMetricsStore((s) => s.avgDuration)
+  const metricsHealthScore = useMetricsStore((s) => s.healthScore)
+  const metricsTokenEstimate = useMetricsStore((s) => s.tokenEstimate)
+  const metricsTotalRuns = useMetricsStore((s) => s.totalRuns)
+  const metricsCompletedRuns = useMetricsStore((s) => s.completedRuns)
+  const metricsFailedRuns = useMetricsStore((s) => s.failedRuns)
+  const metricsTaskTypeDistribution = useMetricsStore((s) => s.taskTypeDistribution)
+  const metricsDurationHistory = useMetricsStore((s) => s.durationHistory)
+  const metricsDailyRunCounts = useMetricsStore((s) => s.dailyRunCounts)
+  const metricsLoading = useMetricsStore((s) => s.loading)
   const loadMetrics = useMetricsStore((s) => s.loadMetrics)
   const [files, setFiles] = useState<FileEntry[]>([])
   const [runs, setRuns] = useState<AgentRun[]>([])
@@ -152,7 +150,7 @@ export function MetricsDashboard() {
     })
   }
 
-  const taskTypeData = Object.entries(metrics.taskTypeDistribution)
+  const taskTypeData = Object.entries(metricsTaskTypeDistribution)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 6)
     .map(([label, value]) => ({
@@ -161,7 +159,7 @@ export function MetricsDashboard() {
       color: TASK_TYPE_COLORS[label] || 'var(--color-text-muted)',
     }))
 
-  const hColor = healthColor(metrics.healthScore)
+  const hColor = healthColor(metricsHealthScore)
   const fileCount = files.reduce(function count(acc: number, e: FileEntry): number {
     return acc + (e.is_dir ? e.children.reduce(count, 0) : 1)
   }, 0)
@@ -179,12 +177,12 @@ export function MetricsDashboard() {
           className="p-2 rounded-lg hover:bg-bg-surface text-text-muted hover:text-accent transition-colors"
           title="Metriken aktualisieren"
         >
-          <RefreshCw className={`w-4 h-4 ${metrics.loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${metricsLoading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {/* Metric Cards Row */}
-      {metrics.loading ? (
+      {metricsLoading ? (
         <div className="grid grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="glass rounded-xl p-4 h-28 animate-pulse-glow" />
@@ -198,7 +196,7 @@ export function MetricsDashboard() {
               <Heart className="w-3 h-3 text-text-muted" />
               <span className="font-hud text-[9px] text-text-muted">Systemgesundheit</span>
             </div>
-            <MiniDonut value={metrics.healthScore} color={hColor} size={56} />
+            <MiniDonut value={metricsHealthScore} color={hColor} size={56} />
           </div>
 
           {/* Success Rate */}
@@ -207,9 +205,9 @@ export function MetricsDashboard() {
               <TrendingUp className="w-3 h-3 text-text-muted" />
               <span className="font-hud text-[9px] text-text-muted">Erfolgsrate</span>
             </div>
-            <MiniDonut value={metrics.successRate} color="var(--color-accent)" size={56} />
+            <MiniDonut value={metricsSuccessRate} color="var(--color-accent)" size={56} />
             <span className="text-[9px] text-text-muted font-mono">
-              {metrics.completedRuns}/{metrics.completedRuns + metrics.failedRuns} Runs
+              {metricsCompletedRuns}/{metricsCompletedRuns + metricsFailedRuns} Runs
             </span>
           </div>
 
@@ -219,8 +217,8 @@ export function MetricsDashboard() {
               <Clock className="w-3 h-3 text-text-muted" />
               <span className="font-hud text-[9px] text-text-muted">Avg. Dauer</span>
             </div>
-            <span className="text-lg font-mono text-cyan">{formatDuration(metrics.avgDuration)}</span>
-            <Sparkline data={metrics.durationHistory} color="var(--color-cyan)" width={140} height={28} />
+            <span className="text-lg font-mono text-cyan">{formatDuration(metricsAvgDuration)}</span>
+            <Sparkline data={metricsDurationHistory} color="var(--color-cyan)" width={140} height={28} />
           </div>
 
           {/* Token Usage */}
@@ -229,9 +227,9 @@ export function MetricsDashboard() {
               <Zap className="w-3 h-3 text-text-muted" />
               <span className="font-hud text-[9px] text-text-muted">~Token-Verbrauch</span>
             </div>
-            <span className="text-lg font-mono text-violet">~{formatTokens(metrics.tokenEstimate)}</span>
+            <span className="text-lg font-mono text-violet">~{formatTokens(metricsTokenEstimate)}</span>
             <div className="flex items-center gap-2 mt-auto">
-              <span className="text-[9px] text-text-muted font-mono">{metrics.totalRuns} Runs gesamt</span>
+              <span className="text-[9px] text-text-muted font-mono">{metricsTotalRuns} Runs gesamt</span>
               <span className="text-[9px] text-text-muted font-mono">{fileCount} Dateien</span>
             </div>
           </div>
@@ -253,7 +251,7 @@ export function MetricsDashboard() {
         {/* Daily Activity */}
         <div className="col-span-2 glass rounded-xl p-3.5">
           <span className="font-hud text-[9px] text-text-muted block mb-3">Aktivität (14 Tage)</span>
-          <DailyActivity dailyCounts={metrics.dailyRunCounts} />
+          <DailyActivity dailyCounts={metricsDailyRunCounts} />
         </div>
       </div>
 

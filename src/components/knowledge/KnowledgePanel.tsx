@@ -123,15 +123,17 @@ export function KnowledgePanel() {
   const [searchResults, setSearchResults] = useState<KnowledgeEntry[] | null>(null)
   const [loading, setLoading] = useState(false)
   const activeProject = useProjectStore((s) => s.getActiveProject())
+  const activeProjectId = activeProject?.id
   const addNotification = useNotificationStore((s) => s.addNotification)
 
   const loadEntries = useCallback(async () => {
-    if (!activeProject) return
+    const project = useProjectStore.getState().getActiveProject()
+    if (!project) return
     setLoading(true)
-    const data = await getAllKnowledge(activeProject.id)
+    const data = await getAllKnowledge(project.id)
     setEntries(data)
     setLoading(false)
-  }, [activeProject])
+  }, [activeProjectId])
 
   useEffect(() => {
     loadEntries()

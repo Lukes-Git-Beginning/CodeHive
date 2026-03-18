@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, AlertTriangle, CheckCircle, Info, AlertCircle } from 'lucide-react'
 import { useNotificationStore, type NotificationType } from '../../stores/notificationStore'
@@ -21,7 +21,11 @@ export function ToastContainer() {
   const notifications = useNotificationStore((s) => s.notifications)
   const dismiss = useNotificationStore((s) => s.dismissNotification)
 
-  const visible = notifications.filter((n) => !n.dismissed).slice(0, 3)
+  const visible = useMemo(
+    () => notifications.filter((n) => !n.dismissed).slice(0, 3),
+    [notifications]
+  )
+  const visibleIds = visible.map((n) => n.id).join(',')
 
   // Auto-dismiss after 6 seconds
   useEffect(() => {
@@ -29,7 +33,7 @@ export function ToastContainer() {
       setTimeout(() => dismiss(n.id), 6000)
     )
     return () => timers.forEach(clearTimeout)
-  }, [visible, dismiss])
+  }, [visibleIds])
 
   return (
     <div className="fixed bottom-16 right-4 z-[60] flex flex-col gap-2 max-w-sm">

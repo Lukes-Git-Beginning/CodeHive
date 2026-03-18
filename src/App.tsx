@@ -57,15 +57,15 @@ function App() {
   const pendingPlan = useAgentStore((s) => s.pendingPlan)
   const approvePlan = useAgentStore((s) => s.approvePlan)
   const rejectPlan = useAgentStore((s) => s.rejectPlan)
-  const runHistory = useAgentStore((s) => s.runHistory)
+  const latestRun = useAgentStore((s) => s.runHistory[0] ?? null)
   const activeProject = useProjectStore((s) => s.getActiveProject())
 
   // Show results summary when a run completes
   useEffect(() => {
-    if (phase === 'done' && runHistory.length > 0 && !completedRun) {
-      setCompletedRun(runHistory[0])
+    if (phase === 'done' && latestRun && !completedRun) {
+      setCompletedRun(latestRun)
     }
-  }, [phase, runHistory, completedRun])
+  }, [phase, latestRun, completedRun])
 
   // Init
   const loadProfile = useProfileStore((s) => s.loadProfile)
