@@ -108,7 +108,7 @@ function generateSuggestions(
   }
 
   // Web Research suggestions from Metis
-  const researchIdeas = generateResearchSuggestions({ id: '', name: projectName, path: '', techStack, description: '', createdAt: '', updatedAt: '' })
+  const researchIdeas = generateResearchSuggestions({ id: '', name: projectName, path: '', techStack, description: '', gitRemote: '', projectIdentifier: '', createdAt: '', updatedAt: '' })
   for (const idea of researchIdeas.slice(0, 1)) {
     suggestions.push({
       id: idea.id,
