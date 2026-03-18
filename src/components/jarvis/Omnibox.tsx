@@ -70,8 +70,8 @@ export function Omnibox() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`w-full max-w-3xl glass transition-all duration-300 rounded-2xl p-3 ${
-        isFocused ? 'ring-1 ring-accent shadow-[0_0_15px_rgba(0,255,136,0.15)]' : ''
+      className={`w-full max-w-3xl glass transition-all duration-300 hud-panel p-3 ${
+        isFocused ? 'ring-1 ring-accent shadow-[0_0_20px_rgba(0,212,255,0.15)]' : ''
       }`}
     >
       <div className="flex flex-col gap-2">
@@ -95,10 +95,10 @@ export function Omnibox() {
         />
 
         <div className="flex items-center justify-between px-2 pb-2">
-          <div className="flex items-center gap-1 bg-bg-surface rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-bg-surface rounded-sm p-1">
             <button
               onClick={() => setMode('orchestrator')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] font-hud transition-colors ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-[10px] font-hud transition-colors ${
                 mode === 'orchestrator'
                   ? 'bg-bg-elevated text-accent'
                   : 'text-text-muted hover:text-text-primary'
@@ -109,7 +109,7 @@ export function Omnibox() {
             </button>
             <button
               onClick={() => setMode('direct')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] font-hud transition-colors ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-[10px] font-hud transition-colors ${
                 mode === 'direct'
                   ? 'bg-bg-elevated text-cyan'
                   : 'text-text-muted hover:text-text-primary'
@@ -121,27 +121,23 @@ export function Omnibox() {
           </div>
 
           <div className="flex items-center gap-2">
-            {phase !== 'idle' && phase !== 'done' && (
-              <span className="text-[9px] font-hud text-cyan animate-pulse">
-                {phase === 'planning' ? 'Planung...' : phase === 'executing' ? 'Ausführung...' : phase === 'verifying' ? 'Verifikation...' : phase === 'awaiting_approval' ? 'Warte auf OK...' : 'Arbeite...'}
-              </span>
-            )}
             <button
               onClick={() => captureAndAnalyze(input.trim() || undefined)}
               disabled={!activeProject || isProcessing}
-              className="p-2 rounded-lg bg-bg-surface text-text-muted hover:text-warning hover:bg-bg-elevated transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-2 rounded-sm bg-bg-surface text-text-muted hover:text-warning hover:bg-bg-elevated transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               title="Screenshot aufnehmen + analysieren (Ctrl+Shift+S)"
             >
               <Camera className="w-4 h-4" />
             </button>
+            {phase !== 'idle' && phase !== 'done' ? (
+              <span className="text-[8px] font-hud text-cyan/60 animate-pulse tracking-widest">PROCESSING</span>
+            ) : (
+              <span className="text-[8px] font-hud text-accent/40 tracking-widest">READY</span>
+            )}
             <button
               onClick={handleSubmit}
               disabled={!input.trim() || !activeProject || isProcessing}
-              className={`p-2 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed ${
-                mode === 'direct'
-                  ? 'bg-bg-surface text-cyan hover:bg-bg-elevated hover:shadow-[0_0_15px_rgba(0,212,255,0.2)]'
-                  : 'bg-bg-surface text-accent hover:bg-bg-elevated hover:shadow-[0_0_15px_rgba(0,255,136,0.2)]'
-              }`}
+              className="p-2 rounded-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed bg-bg-surface text-accent hover:bg-bg-elevated hover:shadow-[0_0_15px_rgba(0,212,255,0.2)]"
             >
               <Send className="w-5 h-5" />
             </button>

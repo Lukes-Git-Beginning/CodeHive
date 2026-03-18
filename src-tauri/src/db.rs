@@ -265,6 +265,34 @@ const MIGRATIONS: &[Migration] = &[
             CREATE INDEX IF NOT EXISTS idx_assignments_member ON task_assignments(member_id);
         ",
     },
+    Migration {
+        version: 6,
+        description: "Path abstraction for multi-PC support",
+        sql: "
+            ALTER TABLE projects ADD COLUMN git_remote TEXT NOT NULL DEFAULT '';
+            ALTER TABLE projects ADD COLUMN project_identifier TEXT NOT NULL DEFAULT '';
+
+            CREATE TABLE IF NOT EXISTS path_mappings (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                machine_id TEXT NOT NULL,
+                local_path TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_path_mappings_project ON path_mappings(project_id);
+            CREATE INDEX IF NOT EXISTS idx_path_mappings_machine ON path_mappings(machine_id);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_path_mappings_unique ON path_mappings(project_id, machine_id);
+
+            CREATE TABLE IF NOT EXISTS export_history (
+                id TEXT PRIMARY KEY,
+                export_type TEXT NOT NULL,
+                file_path TEXT,
+                created_at TEXT NOT NULL,
+                project_ids TEXT NOT NULL DEFAULT '[]'
+            );
+        ",
+    },
 ];
 
 impl Database {
@@ -713,5 +741,163 @@ impl Database {
         let conn = lock_conn(&self.conn)?;
         conn.execute("DELETE FROM task_assignments WHERE id = ?1", params![id])?;
         Ok(())
+    }
+
+    // ── Multi-PC Support ──
+
+    pub fn get_project(&self, id: &str) -> Result<DbProject> {
+        let conn = lock_conn(&self.conn)?;
+        conn.query_row(
+            "SELECT id, name, path, tech_stack, description, created_at, updated_at FROM projects WHERE id = ?1",
+            params![id],
+            |row| {
+                Ok(DbProject {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    path: row.get(2)?,
+                    tech_stack: row.get(3)?,
+                    description: row.get(4)?,
+                    created_at: row.get(5)?,
+                    updated_at: row.get(6)?,
+                })
+            },
+        )
+    }
+
+    pub fn get_task(&self, id: &str) -> Result<Option<DbTask>> {
+        let conn = lock_conn(&self.conn)?;
+        let mut stmt = conn.prepare(
+            "SELECT id, project_id, title, description, status, priority, milestone, created_at, completed_at FROM tasks WHERE id = ?1",
+        )?;
+        let result = stmt.query_row(params![id], |row| {
+            Ok(DbTask {
+                id: row.get(0)?,
+                project_id: row.get(1)?,
+                title: row.get(2)?,
+                description: row.get(3)?,
+                status: row.get(4)?,
+                priority: row.get(5)?,
+                milestone: row.get(6)?,
+                created_at: row.get(7)?,
+                completed_at: row.get(8)?,
+            })
+        });
+        match result {
+            Ok(task) => Ok(Some(task)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub fn save_path_mapping(&self, id: &str, project_id: &str, machine_id: &str, local_path: &str) -> Result<()> {
+        let now = chrono::Utc::now().to_rfc3339();
+        let conn = lock_conn(&self.conn)?;
+        conn.execute(
+            "INSERT OR REPLACE INTO path_mappings (id, project_id, machine_id, local_path, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
+            params![id, project_id, machine_id, local_path, now],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_path_mapping(&self, project_id: &str, machine_id: &str) -> Result<Option<String>> {
+        let conn = lock_conn(&self.conn)?;
+        let mut stmt = conn.prepare(
+            "SELECT local_path FROM path_mappings WHERE project_id = ?1 AND machine_id = ?2"
+        )?;
+        let result = stmt.query_row(params![project_id, machine_id], |row| {
+            row.get::<_, String>(0)
+        });
+        match result {
+            Ok(path) => Ok(Some(path)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub fn update_project_identifier(&self, project_id: &str, identifier: &str, git_remote: &str) -> Result<()> {
+        let conn = lock_conn(&self.conn)?;
+        conn.execute(
+            "UPDATE projects SET project_identifier = ?1, git_remote = ?2 WHERE id = ?3",
+            params![identifier, git_remote, project_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn export_project_data(&self, project_id: &str) -> Result<String, String> {
+        let conn = lock_conn(&self.conn).map_err(|e| e.to_string())?;
+
+        // Get project
+        let mut stmt = conn.prepare("SELECT id, name, path, tech_stack, description, created_at, updated_at, git_remote, project_identifier FROM projects WHERE id = ?1")
+            .map_err(|e| e.to_string())?;
+        let project: String = stmt.query_row(params![project_id], |row| {
+            Ok(serde_json::json!({
+                "id": row.get::<_, String>(0)?,
+                "name": row.get::<_, String>(1)?,
+                "path": row.get::<_, String>(2)?,
+                "techStack": row.get::<_, String>(3)?,
+                "description": row.get::<_, String>(4)?,
+                "createdAt": row.get::<_, String>(5)?,
+                "updatedAt": row.get::<_, String>(6)?,
+                "gitRemote": row.get::<_, String>(7).unwrap_or_default(),
+                "projectIdentifier": row.get::<_, String>(8).unwrap_or_default(),
+            }).to_string())
+        }).map_err(|e| e.to_string())?;
+
+        // Get tasks
+        let mut stmt = conn.prepare("SELECT id, project_id, title, description, status, priority, milestone, created_at FROM tasks WHERE project_id = ?1")
+            .map_err(|e| e.to_string())?;
+        let tasks: Vec<String> = stmt.query_map(params![project_id], |row| {
+            Ok(serde_json::json!({
+                "id": row.get::<_, String>(0)?,
+                "projectId": row.get::<_, String>(1)?,
+                "title": row.get::<_, String>(2)?,
+                "description": row.get::<_, String>(3).unwrap_or_default(),
+                "status": row.get::<_, String>(4)?,
+                "priority": row.get::<_, i32>(5).unwrap_or(1),
+                "milestone": row.get::<_, String>(6).unwrap_or_default(),
+                "createdAt": row.get::<_, String>(7)?,
+            }).to_string())
+        }).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+
+        // Get conversations
+        let mut stmt = conn.prepare("SELECT id, project_id, role, content, timestamp FROM conversations WHERE project_id = ?1 ORDER BY timestamp ASC")
+            .map_err(|e| e.to_string())?;
+        let conversations: Vec<String> = stmt.query_map(params![project_id], |row| {
+            Ok(serde_json::json!({
+                "id": row.get::<_, String>(0)?,
+                "projectId": row.get::<_, String>(1)?,
+                "role": row.get::<_, String>(2)?,
+                "content": row.get::<_, String>(3)?,
+                "timestamp": row.get::<_, String>(4)?,
+            }).to_string())
+        }).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+
+        // Get agent runs
+        let mut stmt = conn.prepare("SELECT id, project_id, prompt, status, output, agent_type, files_changed, started_at, finished_at FROM agent_runs WHERE project_id = ?1")
+            .map_err(|e| e.to_string())?;
+        let agent_runs: Vec<String> = stmt.query_map(params![project_id], |row| {
+            Ok(serde_json::json!({
+                "id": row.get::<_, String>(0)?,
+                "projectId": row.get::<_, String>(1)?,
+                "prompt": row.get::<_, String>(2)?,
+                "status": row.get::<_, String>(3)?,
+                "output": row.get::<_, String>(4).unwrap_or_default(),
+                "agentType": row.get::<_, String>(5).unwrap_or_default(),
+                "filesChanged": row.get::<_, String>(6).unwrap_or_default(),
+                "startedAt": row.get::<_, String>(7)?,
+                "finishedAt": row.get::<_, String>(8).unwrap_or_default(),
+            }).to_string())
+        }).map_err(|e| e.to_string())?.filter_map(|r| r.ok()).collect();
+
+        let bundle = serde_json::json!({
+            "version": "1.0",
+            "exportedAt": chrono::Utc::now().to_rfc3339(),
+            "project": serde_json::from_str::<serde_json::Value>(&project).unwrap_or_default(),
+            "tasks": tasks.iter().map(|t| serde_json::from_str::<serde_json::Value>(t).unwrap_or_default()).collect::<Vec<_>>(),
+            "conversations": conversations.iter().map(|c| serde_json::from_str::<serde_json::Value>(c).unwrap_or_default()).collect::<Vec<_>>(),
+            "agentRuns": agent_runs.iter().map(|r| serde_json::from_str::<serde_json::Value>(r).unwrap_or_default()).collect::<Vec<_>>(),
+        });
+
+        Ok(bundle.to_string())
     }
 }

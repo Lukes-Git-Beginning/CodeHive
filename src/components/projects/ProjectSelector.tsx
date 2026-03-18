@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FolderOpen, Plus, ChevronRight, Hexagon, Loader2, X } from 'lucide-react'
+import { FolderOpen, Plus, ChevronRight, Hexagon, Loader2, X, Download, Upload } from 'lucide-react'
 import { useProjectStore } from '../../stores/projectStore'
+import { useNotificationStore } from '../../stores/notificationStore'
 import { detectTechStack } from '../../services/orchestrator'
+import { exportProjectBundle, importProjectBundle } from '../../services/persistence'
+import { open } from '@tauri-apps/plugin-dialog'
 import type { Project } from '../../types/project'
 import { GlowButton } from '../ui/GlowButton'
 
@@ -17,6 +20,32 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
   const [newPath, setNewPath] = useState('')
   const [detecting, setDetecting] = useState(false)
   const [detectedStack, setDetectedStack] = useState<string[]>([])
+
+  const handleImportProject = async () => {
+    try {
+      const file = await open({
+        filters: [{ name: 'CodeHive Bundle', extensions: ['json'] }],
+        multiple: false,
+      })
+      if (file) {
+        await importProjectBundle(file)
+        await useProjectStore.getState().initialize()
+        useNotificationStore.getState().addNotification('success', 'Projekt importiert!')
+      }
+    } catch (err) {
+      useNotificationStore.getState().addNotification('error', `Import fehlgeschlagen: ${err}`)
+    }
+  }
+
+  const handleExportProject = async (projectId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      const filePath = await exportProjectBundle(projectId)
+      useNotificationStore.getState().addNotification('success', `Exportiert: ${filePath}`)
+    } catch (err) {
+      useNotificationStore.getState().addNotification('error', `Export fehlgeschlagen: ${err}`)
+    }
+  }
 
   const handlePathChange = async (path: string) => {
     setNewPath(path)
@@ -36,6 +65,8 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
       path: newPath.trim(),
       techStack: detectedStack,
       description: '',
+      gitRemote: '',
+      projectIdentifier: '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
@@ -88,7 +119,16 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
           >
             <div className="flex items-start justify-between mb-3">
               <FolderOpen className="w-7 h-7 text-accent/50 group-hover:text-accent transition-colors" />
-              <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-accent transition-colors" />
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={(e) => handleExportProject(project.id, e)}
+                  className="p-1 rounded text-text-muted hover:text-cyan hover:bg-cyan/10 transition-all opacity-0 group-hover:opacity-100"
+                  title="Projekt exportieren"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </button>
+                <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-accent transition-colors" />
+              </div>
             </div>
             <h3 className="font-medium text-sm mb-1 group-hover:text-accent transition-colors">
               {project.name}
@@ -119,6 +159,22 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
           <Plus className="w-7 h-7 text-text-muted group-hover:text-accent mb-2 transition-colors" />
           <span className="text-xs text-text-muted group-hover:text-text-secondary font-hud">
             New Project
+          </span>
+        </motion.button>
+
+        {/* Import Card */}
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          whileHover={{ y: -3 }}
+          onClick={handleImportProject}
+          className="border border-dashed border-cyan/20 rounded-xl p-5
+                     flex flex-col items-center justify-center min-h-[160px]
+                     hover:border-cyan/40 hover:bg-cyan/5 transition-all group"
+        >
+          <Upload className="w-7 h-7 text-text-muted group-hover:text-cyan mb-2 transition-colors" />
+          <span className="text-xs text-text-muted group-hover:text-text-secondary font-hud">
+            Import Project
           </span>
         </motion.button>
       </div>

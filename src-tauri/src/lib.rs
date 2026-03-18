@@ -838,6 +838,153 @@ fn db_delete_assignment(state: State<'_, AppState>, id: String) -> Result<(), St
     state.db.delete_task_assignment(&id).map_err(|e| e.to_string())
 }
 
+// ── Multi-PC Deployment ──
+
+#[tauri::command]
+async fn get_machine_id(state: State<'_, AppState>) -> Result<String, String> {
+    // Check if we already have a machine ID
+    if let Ok(Some(id)) = state.db.get_setting("machine_id") {
+        return Ok(id);
+    }
+    // Generate new machine ID: hostname + UUID
+    let hostname = hostname::get()
+        .map(|h| h.to_string_lossy().to_string())
+        .unwrap_or_else(|_| "unknown".to_string());
+    let id = format!("{}-{}", hostname, uuid::Uuid::new_v4().to_string().split('-').next().unwrap_or("0000"));
+    state.db.set_setting("machine_id", &id).map_err(|e| e.to_string())?;
+    Ok(id)
+}
+
+#[tauri::command]
+async fn export_project_bundle(app: tauri::AppHandle, state: State<'_, AppState>, project_id: String) -> Result<String, String> {
+    let bundle_json = state.db.export_project_data(&project_id)?;
+
+    // Save to file in app data dir
+    let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let export_dir = app_data.join("exports");
+    std::fs::create_dir_all(&export_dir).map_err(|e| e.to_string())?;
+
+    let filename = format!("codehive-export-{}.json", chrono::Utc::now().format("%Y%m%d-%H%M%S"));
+    let filepath = export_dir.join(&filename);
+    std::fs::write(&filepath, &bundle_json).map_err(|e| e.to_string())?;
+
+    Ok(filepath.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+async fn import_project_bundle(state: State<'_, AppState>, file_path: String) -> Result<String, String> {
+    let content = std::fs::read_to_string(&file_path).map_err(|e| e.to_string())?;
+    let bundle: serde_json::Value = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+
+    // Extract project data
+    let project = bundle.get("project").ok_or("No project in bundle")?;
+    let project_id = project.get("id").and_then(|v| v.as_str()).ok_or("No project id")?;
+    let project_name = project.get("name").and_then(|v| v.as_str()).unwrap_or("Imported Project");
+
+    // Check if project already exists
+    let exists = state.db.get_project(project_id).is_ok();
+
+    if !exists {
+        let tech_stack = project.get("techStack").and_then(|v| v.as_str()).unwrap_or("[]");
+        let description = project.get("description").and_then(|v| v.as_str()).unwrap_or("");
+        let git_remote = project.get("gitRemote").and_then(|v| v.as_str()).unwrap_or("");
+        let identifier = project.get("projectIdentifier").and_then(|v| v.as_str()).unwrap_or("");
+        let now = chrono::Utc::now().to_rfc3339();
+
+        let new_project = db::DbProject {
+            id: project_id.to_string(),
+            name: project_name.to_string(),
+            path: String::new(),
+            tech_stack: tech_stack.to_string(),
+            description: description.to_string(),
+            created_at: now.clone(),
+            updated_at: now,
+        };
+        state.db.save_project(&new_project).map_err(|e| e.to_string())?;
+        state.db.update_project_identifier(project_id, identifier, git_remote).map_err(|e| e.to_string())?;
+    }
+
+    // Import tasks
+    if let Some(tasks) = bundle.get("tasks").and_then(|v| v.as_array()) {
+        for task in tasks {
+            let task_id = match task.get("id").and_then(|v| v.as_str()) {
+                Some(id) => id,
+                None => continue,
+            };
+            // Skip if task already exists
+            if let Ok(Some(_)) = state.db.get_task(task_id) { continue; }
+            let now = chrono::Utc::now().to_rfc3339();
+            let new_task = db::DbTask {
+                id: task_id.to_string(),
+                project_id: task.get("projectId").and_then(|v| v.as_str()).unwrap_or(project_id).to_string(),
+                title: task.get("title").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                description: task.get("description").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+                status: task.get("status").and_then(|v| v.as_str()).unwrap_or("planned").to_string(),
+                priority: task.get("priority").and_then(|v| v.as_i64()).unwrap_or(1) as i32,
+                milestone: task.get("milestone").and_then(|v| v.as_str()).map(|s| s.to_string()),
+                created_at: task.get("createdAt").and_then(|v| v.as_str()).unwrap_or(&now).to_string(),
+                completed_at: None,
+            };
+            let _ = state.db.save_task(&new_task);
+        }
+    }
+
+    // Import conversations
+    if let Some(convos) = bundle.get("conversations").and_then(|v| v.as_array()) {
+        for msg in convos {
+            let msg_id = match msg.get("id").and_then(|v| v.as_str()) {
+                Some(id) => id,
+                None => continue,
+            };
+            let _ = state.db.save_message(
+                msg_id,
+                msg.get("projectId").and_then(|v| v.as_str()).unwrap_or(project_id),
+                msg.get("role").and_then(|v| v.as_str()).unwrap_or("system"),
+                None,
+                msg.get("content").and_then(|v| v.as_str()).unwrap_or(""),
+                msg.get("timestamp").and_then(|v| v.as_str()).unwrap_or(""),
+            );
+        }
+    }
+
+    Ok(project_id.to_string())
+}
+
+#[tauri::command]
+async fn save_path_mapping(state: State<'_, AppState>, project_id: String, local_path: String) -> Result<(), String> {
+    let machine_id = {
+        if let Ok(Some(id)) = state.db.get_setting("machine_id") {
+            id
+        } else {
+            let hostname = hostname::get()
+                .map(|h| h.to_string_lossy().to_string())
+                .unwrap_or_else(|_| "unknown".to_string());
+            let id = format!("{}-{}", hostname, uuid::Uuid::new_v4().to_string().split('-').next().unwrap_or("0000"));
+            state.db.set_setting("machine_id", &id).map_err(|e| e.to_string())?;
+            id
+        }
+    };
+    let id = uuid::Uuid::new_v4().to_string();
+    state.db.save_path_mapping(&id, &project_id, &machine_id, &local_path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn get_path_for_machine(state: State<'_, AppState>, project_id: String) -> Result<Option<String>, String> {
+    let machine_id = {
+        if let Ok(Some(id)) = state.db.get_setting("machine_id") {
+            id
+        } else {
+            return Ok(None);
+        }
+    };
+    state.db.get_path_mapping(&project_id, &machine_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn update_project_identifier(state: State<'_, AppState>, project_id: String, identifier: String, git_remote: String) -> Result<(), String> {
+    state.db.update_project_identifier(&project_id, &identifier, &git_remote).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -951,6 +1098,13 @@ pub fn run() {
             db_list_assignments,
             db_save_assignment,
             db_delete_assignment,
+            // Multi-PC Deployment
+            get_machine_id,
+            export_project_bundle,
+            import_project_bundle,
+            save_path_mapping,
+            get_path_for_machine,
+            update_project_identifier,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

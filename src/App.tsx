@@ -1,5 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { invoke } from '@tauri-apps/api/core'
+import { FirstRunWizard } from './components/onboarding/FirstRunWizard'
 import { ProjectSelector } from './components/projects/ProjectSelector'
 import { SettingsPanel } from './components/settings/SettingsPanel'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
@@ -40,6 +42,7 @@ const TemplateSelectorPanel = lazy(() => import('./components/ui/TemplateSelecto
 type OverlayPanel = 'roadmap' | 'knowledge' | 'dashboard' | 'templates' | null
 
 function App() {
+  const [showWizard, setShowWizard] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [isMindPalaceOpen, setIsMindPalaceOpen] = useState(false)
   const [completedRun, setCompletedRun] = useState<AgentRun | null>(null)
@@ -71,6 +74,9 @@ function App() {
     loadProfile()
     useThemeStore.getState().loadTheme()
     useSchedulerStore.getState().start()
+    invoke('get_setting', { key: 'onboarding_completed' }).then((val) => {
+      if (!val) setShowWizard(true)
+    }).catch(() => setShowWizard(true))
     return () => useSchedulerStore.getState().stop()
   }, [initialize, loadProfile])
 
@@ -155,8 +161,18 @@ function App() {
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             className="w-10 h-10 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"
           />
-          <p className="font-hud text-xs text-accent text-glow-green">Metis wird initialisiert...</p>
+          <p className="font-hud text-xs text-accent holo-text">Metis wird initialisiert...</p>
         </motion.div>
+      </div>
+    )
+  }
+
+  // First-run wizard
+  if (showWizard && !activeProjectId) {
+    return (
+      <div className="relative w-screen h-screen bg-bg-deep grid-bg overflow-hidden">
+        <FirstRunWizard onComplete={() => setShowWizard(false)} />
+        <ToastContainer />
       </div>
     )
   }
@@ -190,14 +206,14 @@ function App() {
       <div className="absolute right-6 top-5 z-30 flex items-center gap-2.5">
         <button
           onClick={() => useProjectStore.getState().setActiveProject(null)}
-          className="p-3 glass-elevated rounded-full text-text-muted hover:text-accent neon-hover transition-all"
+          className="p-3 glass-holo rounded-sm text-text-muted hover:text-accent transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.15)]"
           title="Projekt wechseln"
         >
           <FolderPlus className="w-5 h-5" />
         </button>
         <button
           onClick={() => setIsNotifCenterOpen(true)}
-          className="p-3 glass-elevated rounded-full text-text-muted hover:text-cyan neon-hover transition-all relative"
+          className="p-3 glass-holo rounded-sm text-text-muted hover:text-cyan transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.15)] relative"
           title="Benachrichtigungen (Ctrl+N)"
         >
           <Bell className="w-5 h-5" />
@@ -209,14 +225,14 @@ function App() {
         </button>
         <button
           onClick={() => setShowSettings(true)}
-          className="p-3 glass-elevated rounded-full text-text-muted hover:text-accent neon-hover transition-all"
+          className="p-3 glass-holo rounded-sm text-text-muted hover:text-accent transition-all hover:shadow-[0_0_15px_rgba(0,212,255,0.15)]"
           title="Einstellungen (Ctrl+,)"
         >
           <Settings className="w-5 h-5" />
         </button>
         <button
           onClick={() => setIsMindPalaceOpen(true)}
-          className="p-3 glass-elevated rounded-full text-text-secondary hover:text-violet neon-hover transition-all group"
+          className="p-3 glass-holo rounded-sm text-text-secondary hover:text-violet transition-all hover:shadow-[0_0_15px_rgba(123,97,255,0.15)] group"
           title="Mind Palace (Ctrl+M)"
         >
           <BrainCircuit className="w-5 h-5 group-hover:animate-pulse-glow" />
@@ -261,7 +277,7 @@ function App() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="w-full max-w-2xl glass-accent rounded-xl p-5 mb-4"
+                  className="w-full max-w-2xl hud-panel hud-brackets p-5 mb-4"
                 >
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-hud text-[10px] text-accent">
@@ -270,7 +286,7 @@ function App() {
                   </div>
                   <div className="space-y-1.5 mb-4 max-h-40 overflow-y-auto">
                     {pendingPlan.tasks.map((task) => (
-                      <div key={task.id} className="flex items-center gap-2 text-[10px] glass rounded-md px-3 py-2">
+                      <div key={task.id} className="flex items-center gap-2 text-[10px] glass-holo rounded-sm px-3 py-2">
                         <span className="text-text-primary flex-1 truncate">{task.name}</span>
                         {task.role && (
                           <span className="font-mono text-[8px] text-text-muted bg-bg-surface px-1 rounded">{task.role}</span>
@@ -282,8 +298,8 @@ function App() {
                   <div className="flex gap-3">
                     <button
                       onClick={approvePlan}
-                      className="flex-1 py-2 rounded-lg bg-accent/15 border border-accent/30 text-accent text-xs font-hud
-                                 hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,255,136,0.3)] transition-all"
+                      className="flex-1 py-2 rounded-sm bg-accent/15 border border-accent/30 text-accent text-xs font-hud
+                                 hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] transition-all"
                     >
                       Execute
                     </button>
@@ -335,9 +351,9 @@ function App() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
-              className="glass-elevated rounded-2xl w-full max-w-5xl h-[80vh] overflow-hidden flex flex-col"
+              className="hud-panel hud-brackets w-full max-w-5xl h-[80vh] overflow-hidden flex flex-col"
             >
-              <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
+              <div className="flex items-center justify-between p-4 border-b border-cyan/10 shrink-0">
                 <span className="font-hud text-xs text-accent">
                   {overlayPanel === 'roadmap' && 'Roadmap'}
                   {overlayPanel === 'knowledge' && 'Knowledge Base'}
@@ -367,24 +383,24 @@ function App() {
       </AnimatePresence>
 
       {/* Quick-Access Bar (above StatusBar) */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5">
         <button
           onClick={() => setOverlayPanel('dashboard')}
-          className={`p-2.5 rounded-lg transition-all ${overlayPanel === 'dashboard' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
+          className={`p-2.5 rounded-sm transition-all ${overlayPanel === 'dashboard' ? 'glass-holo text-accent shadow-[0_0_15px_rgba(0,212,255,0.2)]' : 'glass-holo text-text-muted hover:text-accent hover:shadow-[0_0_10px_rgba(0,212,255,0.15)]'}`}
           title="Dashboard (Ctrl+D)"
         >
           <LayoutDashboard className="w-4.5 h-4.5" />
         </button>
         <button
           onClick={() => setOverlayPanel('roadmap')}
-          className={`p-2.5 rounded-lg transition-all ${overlayPanel === 'roadmap' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
+          className={`p-2.5 rounded-sm transition-all ${overlayPanel === 'roadmap' ? 'glass-holo text-accent shadow-[0_0_15px_rgba(0,212,255,0.2)]' : 'glass-holo text-text-muted hover:text-accent hover:shadow-[0_0_10px_rgba(0,212,255,0.15)]'}`}
           title="Roadmap (Ctrl+R)"
         >
           <Map className="w-4.5 h-4.5" />
         </button>
         <button
           onClick={() => setOverlayPanel('knowledge')}
-          className={`p-2.5 rounded-lg transition-all ${overlayPanel === 'knowledge' ? 'glass-accent text-accent' : 'glass text-text-muted hover:text-accent neon-hover'}`}
+          className={`p-2.5 rounded-sm transition-all ${overlayPanel === 'knowledge' ? 'glass-holo text-accent shadow-[0_0_15px_rgba(0,212,255,0.2)]' : 'glass-holo text-text-muted hover:text-accent hover:shadow-[0_0_10px_rgba(0,212,255,0.15)]'}`}
           title="Knowledge (Ctrl+K)"
         >
           <Brain className="w-4.5 h-4.5" />
@@ -392,18 +408,18 @@ function App() {
       </div>
 
       {/* Status Bar */}
-      <div className="absolute bottom-0 w-full h-8 glass flex items-center justify-between px-4 z-30 border-t border-border">
-        <span className="text-[10px] font-hud text-text-muted">METIS v1.0</span>
+      <div className="absolute bottom-0 w-full h-8 hud-panel flex items-center justify-between px-4 z-30 border-t border-cyan/10">
+        <span className="text-[10px] font-hud text-text-muted hud-brackets" style={{ padding: '0 8px' }}>METIS v1.0</span>
         <div className="flex items-center gap-4">
           {activeProject && (
             <span className="text-[10px] font-mono text-text-muted">
               {activeProject.name}
               {phase !== 'idle' && phase !== 'done' && (
-                <span className="text-cyan ml-2">{phase.toUpperCase().replace('_', ' ')}</span>
+                <span className="text-cyan ml-2 holo-text">{phase.toUpperCase().replace('_', ' ')}</span>
               )}
             </span>
           )}
-          <span className="flex items-center gap-1.5 text-[10px] font-mono text-accent">
+          <span className="flex items-center gap-1.5 text-[10px] font-hud text-accent animate-holo-flicker">
             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
             ONLINE
           </span>
@@ -457,7 +473,7 @@ function SettingsModal({ show, onClose }: { show: boolean; onClose: () => void }
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="glass-elevated rounded-2xl w-full max-w-xl max-h-[80vh] overflow-hidden"
+            className="hud-panel hud-brackets w-full max-w-xl max-h-[80vh] overflow-hidden"
           >
             <SettingsPanel />
           </motion.div>

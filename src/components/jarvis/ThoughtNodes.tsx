@@ -15,7 +15,7 @@ const ROLE_CONFIG: Record<string, { icon: typeof Cpu; label: string }> = {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  working: '#00ff88',
+  working: '#00d4ff',
   thinking: '#00d4ff',
   done: 'rgba(255,255,255,0.25)',
   error: '#ff3366',
@@ -65,21 +65,26 @@ function Badge({
         <motion.div
           animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0.1, 0.4] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="absolute inset-0 rounded-full"
-          style={{ backgroundColor: `${color}20`, filter: 'blur(8px)' }}
+          className="absolute inset-0"
+          style={{
+            backgroundColor: `${color}20`,
+            filter: 'blur(8px)',
+            clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
+          }}
         />
       )}
 
-      {/* Badge circle */}
+      {/* Badge circle — hexagonal */}
       <motion.div
         animate={isActive ? {
           boxShadow: [`0 0 6px ${color}40`, `0 0 14px ${color}60`, `0 0 6px ${color}40`],
         } : {}}
         transition={{ duration: 1.5, repeat: Infinity }}
-        className="relative w-12 h-12 rounded-full glass-elevated flex flex-col items-center justify-center gap-0.5"
+        className="relative w-12 h-12 glass-elevated flex flex-col items-center justify-center gap-0.5"
         style={{
           borderColor: `${color}50`,
           borderWidth: '1.5px',
+          clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
         }}
       >
         <Icon className="w-4 h-4" style={{ color }} />
@@ -116,17 +121,41 @@ export function ThoughtNodes({ onOpenMindPalace }: ThoughtNodesProps) {
 
   return (
     <div className="absolute inset-0 pointer-events-none z-10">
-      {/* Orbit path (subtle) */}
-      <div
+      {/* Orbit path (subtle, slowly rotating) */}
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
         className="absolute rounded-full border border-dashed"
         style={{
           left: `calc(50% - ${radius}px)`,
           top: `calc(50% - ${radius}px)`,
           width: radius * 2,
           height: radius * 2,
-          borderColor: 'rgba(255,255,255,0.04)',
+          borderColor: 'rgba(0, 212, 255, 0.06)',
         }}
       />
+
+      {/* Connection lines from center to each badge */}
+      {agents.map((agent, i) => {
+        const angle = startAngle + i * angleStep
+        const color = STATUS_COLORS[agent.status] || STATUS_COLORS.idle
+        const lineLength = radius - 24 // minus badge radius
+        return (
+          <div
+            key={`line-${agent.id}`}
+            className="absolute pointer-events-none"
+            style={{
+              left: '50%',
+              top: '50%',
+              width: `${lineLength}px`,
+              height: '1px',
+              transformOrigin: '0 0',
+              transform: `rotate(${angle}deg)`,
+              background: `linear-gradient(90deg, transparent, ${color}30)`,
+            }}
+          />
+        )
+      })}
 
       <AnimatePresence>
         {agents.map((agent, i) => (

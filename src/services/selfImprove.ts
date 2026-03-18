@@ -3,11 +3,13 @@ import { useProjectStore } from '../stores/projectStore'
 import { useNotificationStore } from '../stores/notificationStore'
 import { orchestrate } from './orchestrator'
 import { useChatStore } from '../stores/chatStore'
+import { scanCodebase } from './codebaseScanner'
+import { gatherMetrics } from './codeMetrics'
 
 /**
- * Metis Self-Improvement: Analyze own codebase and suggest improvements.
+ * Metis Self-Improvement: Systematically analyze own codebase and apply improvements.
  */
-export async function triggerSelfImprovement(): Promise<void> {
+export async function triggerSelfImprovement(depth: 'quick' | 'full' = 'full'): Promise<void> {
   const profileStore = useProfileStore.getState()
   const projectStore = useProjectStore.getState()
   const chatStore = useChatStore.getState()
@@ -29,7 +31,7 @@ export async function triggerSelfImprovement(): Promise<void> {
     return
   }
 
-  // Build enriched self-improvement prompt
+  // Build enriched context
   const profile = profileStore.profile
   const successRate = Math.round((profile.positiveRuns / Math.max(profile.positiveRuns + profile.negativeRuns, 1)) * 100)
   const topTasks = Object.entries(profile.taskTypeFrequency)
@@ -41,7 +43,65 @@ export async function triggerSelfImprovement(): Promise<void> {
     ? `\nUser-Feedback aus vergangenen Runs:\n${profile.feedbackNotes.slice(-5).map((n) => `- ${n}`).join('\n')}`
     : ''
 
-  const prompt = `Du analysierst den Quellcode von METIS (CodeHive) — dem selbstlernenden AI-Assistenten, in dem du gerade läufst. Das ist eine Selbstverbesserung: du verbesserst dich selbst.
+  notify('info', `Metis Selbstverbesserung gestartet (${depth === 'full' ? 'Vollständig' : 'Schnell'})...`)
+
+  chatStore.addMessage({
+    id: crypto.randomUUID(),
+    role: 'user',
+    content: `[Selbstverbesserung — ${depth}] Metis analysiert den eigenen Quellcode (${profile.totalRuns} Runs, ${successRate}% Erfolgsrate)`,
+    timestamp: new Date().toISOString(),
+  })
+  chatStore.setProcessing(true)
+
+  // Phase 0: Pre-Scan
+  chatStore.addMessage({
+    id: crypto.randomUUID(),
+    role: 'orchestrator',
+    content: 'Phase 0: Codebase-Scan und Metriken werden erfasst...',
+    timestamp: new Date().toISOString(),
+  })
+
+  const [scanResult, metrics] = await Promise.all([
+    scanCodebase(codehiveProject.path),
+    gatherMetrics(codehiveProject.path),
+  ])
+
+  chatStore.addMessage({
+    id: crypto.randomUUID(),
+    role: 'orchestrator',
+    content: `Scan abgeschlossen: ${scanResult.totalFiles} Dateien gefunden, ${metrics.recentlyChanged.length} kürzlich geändert.`,
+    timestamp: new Date().toISOString(),
+  })
+
+  // Build module lists for prompt
+  const servicesList = (scanResult.modulesByType['service'] || []).map(m => m.path).join('\n  ')
+  const storesList = (scanResult.modulesByType['store'] || []).map(m => m.path).join('\n  ')
+  const componentsList = (scanResult.modulesByType['component'] || []).map(m => m.path).join('\n  ')
+  const rustList = (scanResult.modulesByType['rust'] || []).map(m => m.path).join('\n  ')
+
+  const recentlyChangedInfo = metrics.recentlyChanged.length > 0
+    ? `\nKürzlich geänderte Dateien (höhere Priorität):\n${metrics.recentlyChanged.map(f => `  - ${f}`).join('\n')}`
+    : ''
+
+  // Build the structured prompt
+  const prompt = depth === 'quick'
+    ? `Du analysierst den Quellcode von METIS (CodeHive) — dem selbstlernenden AI-Assistenten. QUICK-SCAN: Fokussiere nur auf kürzlich geänderte Dateien.
+
+Projekt: ${codehiveProject.name} (${codehiveProject.path})
+Tech-Stack: ${codehiveProject.techStack.join(', ')}
+
+User-Profil: ${profile.totalRuns} Runs, Erfolgsrate: ${successRate}%, Modus: ${profile.preferredMode}
+${feedbackContext}
+${recentlyChangedInfo}
+
+Prüfe diese Dateien auf:
+- Bugs oder Edge Cases
+- Fehlende Error-Handler
+- UX-Probleme
+- Performance-Issues
+
+Erstelle konkrete Code-Änderungen mit exakten Diffs.`
+    : `Du analysierst den Quellcode von METIS (CodeHive) systematisch, Modul für Modul. Das ist eine Selbstverbesserung: du verbesserst dich selbst.
 
 WICHTIG: Schlage NUR konkrete Code-Änderungen vor. Keine theoretischen Tipps. Zeige exakte Diffs oder neue Dateien.
 
@@ -55,24 +115,39 @@ User-Profil:
 - Runs seit letzter Selbstverbesserung: ${profile.runsSinceLastSelfImprove}
 ${feedbackContext}
 
-Fokus-Bereiche (priorisiert):
-1. UX-Verbesserungen die der User direkt spürt
-2. Bugs oder Edge Cases die du im Code findest
-3. Performance-Optimierungen (Bundle-Größe, Re-Renders, DB-Queries)
-4. Fehlende Features die basierend auf dem User-Profil sinnvoll wären
-5. Code-Qualität (Duplikation, tote Pfade, fehlende Error-Handler)
+CODEBASE-ÜBERSICHT: ${scanResult.totalFiles} Dateien
+${recentlyChangedInfo}
 
+ANALYSE-REIHENFOLGE (systematisch):
+
+1. SERVICES (${(scanResult.modulesByType['service'] || []).length} Dateien):
+  ${servicesList}
+  → Prüfe: Error Handling, Edge Cases, Performance, fehlende Validierung
+
+2. STORES (${(scanResult.modulesByType['store'] || []).length} Dateien):
+  ${storesList}
+  → Prüfe: State-Konsistenz, fehlende Cleanup, unnötige Re-Renders
+
+3. COMPONENTS (${(scanResult.modulesByType['component'] || []).length} Dateien):
+  ${componentsList}
+  → Prüfe: UX-Bugs, Accessibility, fehlende Loading/Error States
+
+4. RUST BACKEND (${(scanResult.modulesByType['rust'] || []).length} Dateien):
+  ${rustList}
+  → Prüfe: Error Handling, SQL-Injection, Resource Leaks, Panics
+
+5. TYPES & CONFIG:
+  → Prüfe: Typ-Konsistenz, fehlende Felder, veraltete Config
+
+PRIORISIERUNG:
+- P0: Crashes, Daten-Verlust, Security-Lücken
+- P1: UX-Bugs die der User direkt spürt
+- P2: Performance (Re-Renders, Bundle-Größe, DB-Queries)
+- P3: Code-Qualität (Duplikation, tote Pfade, fehlende Error-Handler)
+- P4: Neue Features basierend auf User-Profil
+
+Beginne mit den kürzlich geänderten Dateien (höhere Wahrscheinlichkeit für frische Bugs).
 Erstelle einen priorisierten Plan mit konkreten Code-Änderungen.`
-
-  notify('info', 'Metis Selbstverbesserung gestartet...')
-
-  chatStore.addMessage({
-    id: crypto.randomUUID(),
-    role: 'user',
-    content: `[Selbstverbesserung] Metis analysiert den eigenen Quellcode (${profile.totalRuns} Runs, ${successRate}% Erfolgsrate)`,
-    timestamp: new Date().toISOString(),
-  })
-  chatStore.setProcessing(true)
 
   try {
     await orchestrate(prompt, codehiveProject)

@@ -3,13 +3,13 @@ import type { ReactNode, ButtonHTMLAttributes } from 'react'
 
 interface GlowButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode
-  variant?: 'primary' | 'danger' | 'ghost' | 'cyan'
+  variant?: 'primary' | 'danger' | 'ghost' | 'cyan' | 'hud'
   size?: 'sm' | 'md'
 }
 
 const variants = {
   primary: {
-    base: 'bg-accent/15 border-accent/30 text-accent hover:bg-accent/25 hover:border-accent/50 hover:shadow-[0_0_20px_rgba(0,255,136,0.3)]',
+    base: 'bg-accent/15 border-accent/30 text-accent hover:bg-accent/25 hover:border-accent/50 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)]',
     active: 'active:bg-accent/30',
   },
   danger: {
@@ -23,6 +23,10 @@ const variants = {
   cyan: {
     base: 'bg-cyan-dim border-cyan/30 text-cyan hover:bg-cyan/25 hover:border-cyan/50 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)]',
     active: 'active:bg-cyan/30',
+  },
+  hud: {
+    base: 'bg-transparent border-cyan/30 text-cyan hover:bg-cyan/10 hover:border-cyan/50 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)]',
+    active: 'active:bg-cyan/15',
   },
 }
 
@@ -47,8 +51,9 @@ export function GlowButton({
       whileTap={disabled ? undefined : { scale: 0.98 }}
       disabled={disabled}
       className={`
-        inline-flex items-center justify-center font-medium rounded-lg border
+        inline-flex items-center justify-center font-medium border
         transition-all duration-200
+        ${variant === 'hud' ? 'hud-panel font-hud tracking-wider' : 'rounded-lg'}
         ${v.base} ${v.active} ${sizes[size]}
         disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:shadow-none
         ${className}

@@ -6,6 +6,7 @@ import { useProjectStore } from '../../stores/projectStore'
 import { useProfileStore } from '../../stores/profileStore'
 import { saveTask } from '../../services/persistence'
 import { useNotificationStore } from '../../stores/notificationStore'
+import { ScanLine } from '../ui/ScanLine'
 
 interface ResultsSummaryProps {
   run: AgentRun
@@ -82,17 +83,19 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
       onClick={onClose}
     >
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 30 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 30 }}
+        initial={{ opacity: 0, scale: 0.9, y: 30, filter: 'blur(8px)' }}
+        animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0)' }}
+        exit={{ opacity: 0, scale: 0.9, y: 30, filter: 'blur(8px)' }}
         onClick={(e) => e.stopPropagation()}
-        className="glass-elevated rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+        className="hud-panel hud-brackets w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
       >
+        <ScanLine color="rgba(0, 212, 255, 0.3)" duration={4} />
+
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-cyan/10 shrink-0">
           <div className="flex items-center gap-3">
             {isSuccess ? (
-              <CheckCircle className="w-6 h-6 text-accent" />
+              <CheckCircle className="w-6 h-6 text-success" />
             ) : (
               <XCircle className="w-6 h-6 text-danger" />
             )}
@@ -107,7 +110,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
                 <span className="text-[10px] font-mono text-text-muted flex items-center gap-1">
                   <Cpu className="w-3 h-3" /> {run.agents.length} Agents
                 </span>
-                <span className={`text-[10px] font-hud ${isSuccess ? 'text-accent' : 'text-danger'}`}>
+                <span className={`text-[10px] font-hud ${isSuccess ? 'text-success' : 'text-danger'}`}>
                   {isSuccess ? 'ERFOLGREICH' : 'FEHLGESCHLAGEN'}
                 </span>
               </div>
@@ -122,7 +125,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
         </div>
 
         {/* Prompt */}
-        <div className="px-6 py-3 border-b border-border/50 shrink-0">
+        <div className="px-6 py-3 border-b border-cyan/10 shrink-0">
           <p className="text-[10px] font-hud text-text-muted mb-1">Aufgabe</p>
           <p className="text-sm text-text-primary">{run.prompt}</p>
         </div>
@@ -134,12 +137,12 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
             const agentSuccess = agent.status === 'done'
 
             return (
-              <div key={agent.id} className="glass rounded-lg overflow-hidden">
+              <div key={agent.id} className="glass-holo rounded-sm overflow-hidden">
                 <button
                   onClick={() => toggleAgent(agent.id)}
                   className="w-full p-3.5 text-left hover:bg-bg-hover transition-colors flex items-center gap-3"
                 >
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${agentSuccess ? 'bg-accent' : 'bg-danger'}`} />
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${agentSuccess ? 'bg-success' : 'bg-danger'}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-hud text-[10px] text-accent">{agent.role}</span>
@@ -166,7 +169,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
                       className="overflow-hidden"
                     >
                       <div className="px-3.5 pb-3.5 border-t border-border/30">
-                        <div className="bg-bg-deep/60 rounded-lg p-3 max-h-64 overflow-y-auto mt-2">
+                        <div className="bg-bg-deep/60 rounded-sm p-3 max-h-64 overflow-y-auto mt-2">
                           {agent.output.map((line, i) => (
                             <p key={i} className="text-[10px] text-text-secondary font-mono whitespace-pre-wrap break-words leading-relaxed">
                               {line}
@@ -183,7 +186,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
         </div>
 
         {/* Feedback + Actions */}
-        <div className="p-6 border-t border-border shrink-0 space-y-3">
+        <div className="p-6 border-t border-cyan/10 shrink-0 space-y-3">
           {/* Feedback */}
           <div className="flex items-center justify-center gap-4">
             <span className="text-[10px] font-hud text-text-muted">Wie war das Ergebnis?</span>
@@ -216,7 +219,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
               disabled={addingTasks || run.agents.length === 0}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg
                          bg-accent/15 border border-accent/30 text-accent text-xs font-hud
-                         hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,255,136,0.3)]
+                         hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)]
                          disabled:opacity-30 transition-all"
             >
               <ListPlus className="w-4 h-4" />

@@ -49,6 +49,8 @@ function dbToProject(d: DbProject): Project {
     path: d.path,
     techStack,
     description: d.description,
+    gitRemote: '',
+    projectIdentifier: '',
     createdAt: d.created_at,
     updatedAt: d.updated_at,
   }
@@ -183,6 +185,32 @@ export async function setSetting(key: string, value: string): Promise<void> {
   } catch (err) {
     console.error('Failed to save setting:', err)
   }
+}
+
+// ── Multi-PC Support ──
+
+export async function getMachineId(): Promise<string> {
+  return invoke('get_machine_id')
+}
+
+export async function exportProjectBundle(projectId: string): Promise<string> {
+  return invoke('export_project_bundle', { projectId })
+}
+
+export async function importProjectBundle(filePath: string): Promise<string> {
+  return invoke('import_project_bundle', { filePath })
+}
+
+export async function savePathMapping(projectId: string, localPath: string): Promise<void> {
+  return invoke('save_path_mapping', { projectId, localPath })
+}
+
+export async function getPathForMachine(projectId: string): Promise<string | null> {
+  return invoke('get_path_for_machine', { projectId })
+}
+
+export async function updateProjectIdentifier(projectId: string, identifier: string, gitRemote: string): Promise<void> {
+  return invoke('update_project_identifier', { projectId, identifier, gitRemote })
 }
 
 /**

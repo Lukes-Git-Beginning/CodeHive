@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Settings, Key, Bot, Palette, ClipboardCheck, Zap, HardDrive, Clock, Users, Plus, Trash2 } from 'lucide-react'
-import { getSetting, setSetting } from '../../services/persistence'
+import { Settings, Key, Bot, Palette, ClipboardCheck, Zap, HardDrive, Clock, Users, Plus, Trash2, Download, Upload, Database, Monitor } from 'lucide-react'
+import { getSetting, setSetting, getMachineId, exportProjectBundle, importProjectBundle } from '../../services/persistence'
+import { open } from '@tauri-apps/plugin-dialog'
 import { checkClaudeCli } from '../../services/orchestrator'
 import { checkOllamaStatus } from '../../services/localLlm'
 import { useSchedulerStore } from '../../stores/schedulerStore'
@@ -12,6 +13,7 @@ import { INTERVAL_LABELS } from '../../services/scheduler'
 import type { ScheduleInterval } from '../../types/scheduler'
 import { StatusDot } from '../ui/StatusDot'
 import { MCPSettings } from './MCPSettings'
+import { useNotificationStore } from '../../stores/notificationStore'
 
 function Toggle({ enabled, onChange }: { enabled: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -72,7 +74,7 @@ export function SettingsPanel() {
 
   return (
     <div className="h-full overflow-y-auto p-6 max-w-2xl mx-auto">
-      <h2 className="font-hud text-sm text-accent text-glow-green mb-6 flex items-center gap-2">
+      <h2 className="font-hud text-sm text-accent holo-text mb-6 flex items-center gap-2">
         <Settings className="w-4 h-4" />
         System Configuration
       </h2>
@@ -232,6 +234,9 @@ export function SettingsPanel() {
 
       {/* Team */}
       <TeamSection />
+
+      {/* Data & Sync */}
+      <DataSyncSection />
 
       {/* Theme */}
       <motion.section
@@ -490,6 +495,106 @@ function TeamSection() {
           Mitglied hinzufügen
         </button>
       )}
+    </motion.section>
+  )
+}
+
+// ── Data & Sync Section ──
+
+function DataSyncSection() {
+  const [machineId, setMachineId] = useState<string>('')
+  const [exporting, setExporting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const projects = useProjectStore((s) => s.projects)
+  const notify = useNotificationStore.getState().addNotification
+
+  useEffect(() => {
+    getMachineId().then(setMachineId).catch(() => {})
+  }, [])
+
+  const handleExportAll = async () => {
+    setExporting(true)
+    try {
+      const paths: string[] = []
+      for (const p of projects) {
+        const path = await exportProjectBundle(p.id)
+        paths.push(path)
+      }
+      notify('success', `${paths.length} Projekte exportiert`)
+    } catch (err) {
+      notify('error', `Export fehlgeschlagen: ${err}`)
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const handleImport = async () => {
+    setImporting(true)
+    try {
+      const file = await open({
+        filters: [{ name: 'CodeHive Bundle', extensions: ['json'] }],
+        multiple: false,
+      })
+      if (file) {
+        await importProjectBundle(file)
+        await useProjectStore.getState().initialize()
+        notify('success', 'Daten importiert!')
+      }
+    } catch (err) {
+      notify('error', `Import fehlgeschlagen: ${err}`)
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.22 }}
+      className="glass-elevated rounded-xl p-5 mb-4"
+    >
+      <h3 className="font-hud text-[11px] text-cyan text-glow-cyan mb-4 flex items-center gap-2">
+        <Database className="w-3.5 h-3.5" />
+        Daten & Sync
+      </h3>
+
+      {/* Machine ID */}
+      <div className="flex items-center gap-3 glass rounded-lg px-3 py-2 mb-4">
+        <Monitor className="w-3.5 h-3.5 text-text-muted" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-hud text-text-muted">Machine ID</p>
+          <p className="text-xs font-mono text-text-secondary truncate">{machineId || '...'}</p>
+        </div>
+      </div>
+
+      {/* Export/Import */}
+      <div className="flex gap-3">
+        <button
+          onClick={handleExportAll}
+          disabled={exporting || projects.length === 0}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg
+                     bg-accent/10 border border-accent/20 text-accent text-[11px] font-hud
+                     hover:bg-accent/20 transition-colors disabled:opacity-30"
+        >
+          <Download className="w-3.5 h-3.5" />
+          {exporting ? 'Exportiere...' : 'Alle exportieren'}
+        </button>
+        <button
+          onClick={handleImport}
+          disabled={importing}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg
+                     bg-cyan/10 border border-cyan/20 text-cyan text-[11px] font-hud
+                     hover:bg-cyan/20 transition-colors disabled:opacity-30"
+        >
+          <Upload className="w-3.5 h-3.5" />
+          {importing ? 'Importiere...' : 'Daten importieren'}
+        </button>
+      </div>
+
+      <p className="text-[9px] text-text-muted mt-3">
+        Exportiere Projekte als .json Bundles um sie auf anderen PCs zu importieren.
+      </p>
     </motion.section>
   )
 }

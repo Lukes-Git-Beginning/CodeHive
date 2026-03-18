@@ -4,6 +4,8 @@ export interface Project {
   path: string
   techStack: string[]
   description: string
+  gitRemote: string
+  projectIdentifier: string
   createdAt: string
   updatedAt: string
 }

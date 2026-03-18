@@ -216,10 +216,10 @@ export function ProactiveSuggestions() {
           return (
             <motion.div
               key={suggestion.id}
-              initial={{ opacity: 0, y: 15, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -15, scale: 0.9 }}
-              className="glass-elevated px-4 py-3 rounded-xl flex items-center justify-between gap-4 w-full neon-hover border border-border"
+              initial={{ opacity: 0, y: 15, scale: 0.95, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -15, scale: 0.9, filter: 'blur(4px)' }}
+              className="hud-panel hud-brackets px-4 py-3 flex items-center justify-between gap-4 w-full"
             >
               <div className="flex items-center gap-3">
                 <Icon className={`w-4 h-4 shrink-0 ${color}`} />
