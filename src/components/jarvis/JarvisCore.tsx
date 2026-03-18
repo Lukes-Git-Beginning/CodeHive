@@ -41,7 +41,7 @@ export function JarvisCore() {
   const isActive = phase !== 'idle' && phase !== 'done'
 
   return (
-    <div className="relative flex items-center justify-center w-80 h-80 mb-12 shrink-0">
+    <div className="relative flex items-center justify-center w-80 h-80 shrink-0" style={{ marginBottom: '3rem' }}>
 
       {/* 1. Particles — emitting outward from center */}
       {isActive && PARTICLES.map((p, i) => (
