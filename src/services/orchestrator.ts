@@ -12,6 +12,7 @@ import { generateMcpConfig } from './mcpConfig'
 import { useProfileStore } from '../stores/profileStore'
 import { useGitStore } from '../stores/gitStore'
 import { initBlackboard, formatBlackboardForPrompt, detectConflicts, extractAgentFindings } from './blackboard'
+import { buildAgentContext, generateReflection } from './contextEngine'
 
 // ── Types ──
 
@@ -453,14 +454,17 @@ ${task.verify ? `Verifikation: ${task.verify}` : ''}
 
 Arbeite fokussiert und effizient. Ändere nur was nötig ist.`
 
-        // Combine role-specific prompt with project context + blackboard
+        // Build intelligent context via Context Engine (Tier 1-3 memory)
+        const agentContext = await buildAgentContext(task, role, project)
         const blackboardContext = formatBlackboardForPrompt()
+
+        // Combine role-specific prompt with project context + memory + blackboard
         const systemPrompt = `${rolePrompt}
 
 Projekt-Kontext:
 ${brief}
 Tech-Stack: ${project.techStack.join(', ') || 'Unbekannt'}
-${blackboardContext}
+${agentContext}${blackboardContext}
 Du kannst Findings für andere Agents markieren mit: [FINDING] ..., [WARNING] ..., [REQUEST] ...`
 
         try {
@@ -620,11 +624,12 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
     // Phase 3: Verify
     await verifyWork(plan, project)
 
-    // Done — extract learnings + persist agent runs to DB
+    // Done — extract learnings + reflections + persist agent runs to DB
     const finishedRun = useAgentStore.getState().currentRun
     if (finishedRun) {
-      await extractLearnings(finishedRun, project)
-      await persistAgentRuns(finishedRun, project.id)
+      try { await extractLearnings(finishedRun, project) } catch { /* best-effort */ }
+      try { await generateReflection(finishedRun, project) } catch { /* best-effort */ }
+      try { await persistAgentRuns(finishedRun, project.id) } catch { /* best-effort */ }
     }
 
     // Record in user profile
@@ -646,6 +651,13 @@ export async function orchestrate(prompt: string, project: Project): Promise<voi
       content: `Orchestrierung fehlgeschlagen: ${err}`,
       timestamp: new Date().toISOString(),
     })
+
+    // Generate reflection even for failed runs (learn from failures)
+    const failedRun = useAgentStore.getState().currentRun
+    if (failedRun) {
+      try { await generateReflection({ ...failedRun, status: 'failed' }, project) } catch { /* best-effort */ }
+    }
+
     agentStore.finishRun(`Fehler: ${err}`)
     useProfileStore.getState().recordRun(prompt, [], false)
     useNotificationStore.getState().addNotification('error', `Orchestrierung fehlgeschlagen: ${err}`)
