@@ -12,13 +12,13 @@ export function StatusBar() {
   const activeProject = useProjectStore((s) => s.getActiveProject())
 
   useEffect(() => {
-    checkClaudeCli().then(setClaudeVersion)
+    checkClaudeCli().then(setClaudeVersion).catch(() => setClaudeVersion(null))
   }, [])
 
   const isRunning = phase !== 'idle' && phase !== 'done'
 
   return (
-    <div className="h-7 glass border-t border-border flex items-center px-4 text-[11px] text-text-muted shrink-0 relative z-10">
+    <div role="status" className="h-7 glass border-t border-border flex items-center px-4 text-[11px] text-text-muted shrink-0 relative z-10">
       {/* Active run indicator */}
       {isRunning && (
         <motion.div

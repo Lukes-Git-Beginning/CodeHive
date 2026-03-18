@@ -45,6 +45,7 @@ export function Sidebar({ onShowSettings, onAddProject }: SidebarProps) {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={onAddProject}
+              aria-label="Projekt hinzufügen"
               className="p-1 rounded-md hover:bg-bg-hover text-text-muted hover:text-accent transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -64,8 +65,10 @@ export function Sidebar({ onShowSettings, onAddProject }: SidebarProps) {
                     key={project.id}
                     whileHover={{ x: 2 }}
                     onClick={() => setActiveProject(project.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveProject(project.id) } }}
                     role="button"
                     tabIndex={0}
+                    aria-current={isActive ? 'true' : undefined}
                     className={`group w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs transition-all relative cursor-pointer ${
                       isActive
                         ? 'bg-accent/10 text-accent border border-accent-dim'
@@ -90,12 +93,13 @@ export function Sidebar({ onShowSettings, onAddProject }: SidebarProps) {
                       )}
                     </div>
 
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           if (confirm(`"${project.name}" löschen?`)) removeProject(project.id)
                         }}
+                        aria-label={`${project.name} löschen`}
                         className="p-0.5 rounded hover:bg-danger/20 text-text-muted hover:text-danger transition-colors"
                       >
                         <Trash2 className="w-3 h-3" />

@@ -77,7 +77,7 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
 
   recordRun: (prompt, roles, success) => {
     set((s) => {
-      const p = { ...s.profile }
+      const p = { ...s.profile, taskTypeFrequency: { ...s.profile.taskTypeFrequency }, frequentRoles: [...s.profile.frequentRoles] }
       p.totalRuns++
       p.lastSeen = new Date().toISOString()
       p.runsSinceLastSelfImprove++
