@@ -133,7 +133,7 @@ export function ThoughtNodes({ onOpenMindPalace }: ThoughtNodesProps) {
   const angleStep = agents.length > 1 ? 360 / agents.length : 0
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-10">
+    <div className="absolute pointer-events-none z-10" style={{ inset: '-100px' }}>
       {/* Orbit path */}
       <motion.div
         animate={{ rotate: 360 }}

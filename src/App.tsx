@@ -231,15 +231,15 @@ function App() {
       {/* Main Interaction Area */}
       <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-4 pt-16 pb-14 overflow-hidden gap-2">
         <ErrorBoundary label="Metis">
-          {/* Thought Nodes */}
-          <ThoughtNodes onOpenMindPalace={() => setIsMindPalaceOpen(true)} />
-
           {/* Proactive Suggestions */}
           <ProactiveSuggestions />
 
           <div className="relative flex flex-col items-center w-full max-w-4xl mx-auto">
-            {/* Core Sphere */}
-            <JarvisCore />
+            {/* Core Sphere + Agent Badges (ThoughtNodes positioned relative to this container) */}
+            <div className="relative">
+              <ThoughtNodes onOpenMindPalace={() => setIsMindPalaceOpen(true)} />
+              <JarvisCore />
+            </div>
 
             {/* Plan Approval */}
             <AnimatePresence>
