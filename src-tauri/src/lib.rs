@@ -288,9 +288,10 @@ fn list_project_files(path: String, max_depth: Option<u32>) -> Result<Vec<FileEn
 
 #[tauri::command]
 async fn detect_tech_stack(path: String) -> Result<Vec<String>, String> {
-    let path = std::path::Path::new(&path);
+    let clean = path.trim().trim_matches('"').to_string();
+    let path = std::path::Path::new(&clean);
     if !path.exists() {
-        return Err("Path does not exist".to_string());
+        return Err(format!("Path does not exist: '{}'", clean));
     }
 
     let mut stack = Vec::new();
@@ -423,6 +424,14 @@ fn db_search_knowledge(state: State<'_, AppState>, project_id: String, query: St
 #[tauri::command]
 fn db_delete_knowledge(state: State<'_, AppState>, id: String) -> Result<(), String> {
     state.db.delete_knowledge(&id).map_err(|e| e.to_string())
+}
+
+// ── File Content Reader ──
+
+#[tauri::command]
+fn read_file_content(path: String) -> Result<String, String> {
+    let clean = path.trim().trim_matches('"').to_string();
+    std::fs::read_to_string(&clean).map_err(|e| format!("Failed to read {}: {}", clean, e))
 }
 
 // ── CLAUDE.md Reader ──
@@ -1067,6 +1076,7 @@ pub fn run() {
             db_get_knowledge,
             db_search_knowledge,
             db_delete_knowledge,
+            read_file_content,
             read_claude_md,
             // Clipboard
             read_clipboard,

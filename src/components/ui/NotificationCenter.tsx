@@ -11,7 +11,7 @@ const ICON_MAP: Record<NotificationType, typeof Info> = {
 }
 
 const COLOR_MAP: Record<NotificationType, string> = {
-  info: 'text-cyan',
+  info: 'text-accent',
   success: 'text-accent',
   warning: 'text-warning',
   error: 'text-danger',
@@ -94,16 +94,16 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
               <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-cyan" />
-                <h2 className="font-hud text-sm text-text-primary">Benachrichtigungen</h2>
+                <Bell className="w-5 h-5 text-accent" />
+                <h2 className="font-semibold text-sm text-text-primary">Benachrichtigungen</h2>
                 {unreadCount > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-cyan/20 text-cyan font-mono text-[9px]">{unreadCount}</span>
+                  <span className="px-1.5 py-0.5 rounded-full bg-accent/20 text-accent font-mono text-[9px]">{unreadCount}</span>
                 )}
               </div>
               <div className="flex items-center gap-1">
                 {notifications.length > 0 && (
                   <>
-                    <button onClick={markAllRead} className="p-1.5 rounded-md hover:bg-bg-surface text-text-muted hover:text-accent transition-colors text-[9px] font-hud">
+                    <button onClick={markAllRead} className="p-1.5 rounded-md hover:bg-bg-surface text-text-muted hover:text-accent transition-colors text-[9px] font-medium">
                       Gelesen
                     </button>
                     <button onClick={clearAll} className="p-1.5 rounded-md hover:bg-danger/20 text-text-muted hover:text-danger transition-colors">
@@ -124,7 +124,7 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
                   key={key}
                   onClick={() => setFilter(key)}
                   aria-current={filter === key ? 'true' : undefined}
-                  className={`text-[9px] font-hud px-2.5 py-1 rounded-full transition-colors ${
+                  className={`text-[9px] font-medium px-2.5 py-1 rounded-full transition-colors ${
                     filter === key ? 'bg-accent/20 text-accent' : 'bg-bg-surface text-text-muted hover:text-text-secondary'
                   }`}
                 >
@@ -143,7 +143,7 @@ export function NotificationCenter({ isOpen, onClose }: NotificationCenterProps)
               ) : (
                 Object.entries(grouped).map(([group, items]) => (
                   <section key={group}>
-                    <p className="font-hud text-[9px] text-text-muted mb-2">{group}</p>
+                    <p className="font-medium text-[9px] text-text-muted mb-2">{group}</p>
                     <div className="space-y-1.5">
                       {items.map((n) => {
                         const Icon = ICON_MAP[n.type]

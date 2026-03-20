@@ -96,7 +96,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
         <ScanLine color="rgba(0, 212, 255, 0.3)" duration={4} />
 
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-cyan/10 shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
             {isSuccess ? (
               <CheckCircle className="w-6 h-6 text-success" />
@@ -104,7 +104,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
               <XCircle className="w-6 h-6 text-danger" />
             )}
             <div>
-              <h2 className="font-hud text-sm text-text-primary">
+              <h2 className="font-semibold text-sm text-text-primary">
                 Metis — Ergebnisse
               </h2>
               <div className="flex items-center gap-3 mt-1">
@@ -114,7 +114,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
                 <span className="text-[10px] font-mono text-text-muted flex items-center gap-1">
                   <Cpu className="w-3 h-3" /> {run.agents.length} Agents
                 </span>
-                <span className={`text-[10px] font-hud ${isSuccess ? 'text-success' : 'text-danger'}`}>
+                <span className={`text-[10px] font-medium ${isSuccess ? 'text-success' : 'text-danger'}`}>
                   {isSuccess ? 'ERFOLGREICH' : 'FEHLGESCHLAGEN'}
                 </span>
               </div>
@@ -130,8 +130,8 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
         </div>
 
         {/* Prompt */}
-        <div className="px-6 py-3 border-b border-cyan/10 shrink-0">
-          <p className="text-[10px] font-hud text-text-muted mb-1">Aufgabe</p>
+        <div className="px-6 py-3 border-b border-border shrink-0">
+          <p className="text-[10px] font-medium text-text-muted mb-1">Aufgabe</p>
           <p className="text-sm text-text-primary">{run.prompt}</p>
         </div>
 
@@ -142,7 +142,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
             const agentSuccess = agent.status === 'done'
 
             return (
-              <div key={agent.id} className="glass-holo rounded-sm overflow-hidden">
+              <div key={agent.id} className="glass rounded-sm overflow-hidden">
                 <button
                   onClick={() => toggleAgent(agent.id)}
                   className="w-full p-3.5 text-left hover:bg-bg-hover transition-colors flex items-center gap-3"
@@ -150,7 +150,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
                   <div className={`w-2 h-2 rounded-full shrink-0 ${agentSuccess ? 'bg-success' : 'bg-danger'}`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-hud text-[10px] text-accent">{agent.role}</span>
+                      <span className="font-medium text-[10px] text-accent">{agent.role}</span>
                       {agent.finishedAt && agent.startedAt && (
                         <span className="text-[9px] font-mono text-text-muted">
                           {formatDuration(agent.startedAt, agent.finishedAt)}
@@ -191,10 +191,10 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
         </div>
 
         {/* Feedback + Actions */}
-        <div className="p-6 border-t border-cyan/10 shrink-0 space-y-3">
+        <div className="p-6 border-t border-border shrink-0 space-y-3">
           {/* Feedback */}
           <div className="flex items-center justify-center gap-4">
-            <span className="text-[10px] font-hud text-text-muted">
+            <span className="text-[10px] font-medium text-text-muted">
               {voted ? 'Danke für dein Feedback!' : 'Wie war das Ergebnis?'}
             </span>
             <button
@@ -236,7 +236,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
               disabled={addingTasks || run.agents.length === 0}
               aria-busy={addingTasks}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg
-                         bg-accent/15 border border-accent/30 text-accent text-xs font-hud
+                         bg-accent/15 border border-accent/30 text-accent text-xs font-medium
                          hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)]
                          disabled:opacity-30 transition-all"
             >
@@ -245,7 +245,7 @@ export function ResultsSummary({ run, onClose }: ResultsSummaryProps) {
             </button>
             <button
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg glass text-text-secondary text-xs font-hud
+              className="flex-1 py-2.5 rounded-lg glass text-text-secondary text-xs font-medium
                          hover:text-text-primary transition-all"
             >
               Schließen

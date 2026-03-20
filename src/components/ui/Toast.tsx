@@ -11,7 +11,7 @@ const ICON_MAP: Record<NotificationType, typeof Info> = {
 }
 
 const COLOR_MAP: Record<NotificationType, string> = {
-  info: 'text-cyan border-cyan/30',
+  info: 'text-accent border-accent/30',
   success: 'text-accent border-accent/30',
   warning: 'text-warning border-warning/30',
   error: 'text-danger border-danger/30',

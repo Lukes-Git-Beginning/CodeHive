@@ -65,7 +65,7 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         <Sparkles className="w-10 h-10 text-accent" />
       </motion.div>
       <div>
-        <h1 className="font-hud text-lg text-accent holo-text mb-2">Welcome to METIS</h1>
+        <h1 className="font-semibold text-lg text-accent mb-2">Welcome to METIS</h1>
         <p className="text-text-secondary text-sm max-w-md">
           Dein persönlicher AI-Orchestrator. Metis plant, delegiert und verifiziert deine Aufgaben mit mehreren spezialisierten Agenten.
         </p>
@@ -74,9 +74,9 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
 
     // Step 1: Import existing data
     <div key="import" className="flex flex-col items-center gap-6 text-center">
-      <Upload className="w-12 h-12 text-cyan" />
+      <Upload className="w-12 h-12 text-accent" />
       <div>
-        <h2 className="font-hud text-sm text-accent mb-2">Bestehende Daten?</h2>
+        <h2 className="font-semibold text-sm text-accent mb-2">Bestehende Daten?</h2>
         <p className="text-text-secondary text-xs max-w-md mb-4">
           Wenn du Metis bereits auf einem anderen PC nutzt, kannst du deine Projekte und Einstellungen importieren.
         </p>
@@ -85,13 +85,13 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         <button
           onClick={handleImport}
           disabled={importing}
-          className="px-4 py-2 hud-panel text-cyan text-xs font-hud hover:shadow-[0_0_15px_rgba(0,212,255,0.2)] transition-all disabled:opacity-50"
+          className="px-4 py-2 hud-panel text-accent text-xs font-medium hover:shadow-[0_0_15px_rgba(0,212,255,0.2)] transition-all disabled:opacity-50"
         >
           {importing ? 'Importiere...' : '.codehive Datei importieren'}
         </button>
         <button
           onClick={() => setStep(2)}
-          className="px-4 py-2 glass-holo text-text-muted text-xs font-hud hover:text-text-primary transition-all"
+          className="px-4 py-2 glass text-text-muted text-xs font-medium hover:text-text-primary transition-all"
         >
           Überspringen
         </button>
@@ -100,9 +100,9 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
 
     // Step 2: Claude CLI Check
     <div key="claude" className="flex flex-col items-center gap-6 text-center">
-      <Terminal className="w-12 h-12 text-violet" />
+      <Terminal className="w-12 h-12 text-text-secondary" />
       <div>
-        <h2 className="font-hud text-sm text-accent mb-2">Claude CLI</h2>
+        <h2 className="font-semibold text-sm text-accent mb-2">Claude CLI</h2>
         <p className="text-text-secondary text-xs max-w-md mb-4">
           Metis benötigt die Claude CLI um Agenten zu starten. Prüfe ob sie installiert ist.
         </p>
@@ -111,13 +111,13 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         <button
           onClick={checkClaude}
           disabled={checking}
-          className="px-4 py-2 hud-panel text-accent text-xs font-hud hover:shadow-[0_0_15px_rgba(0,212,255,0.2)] transition-all disabled:opacity-50 flex items-center gap-2"
+          className="px-4 py-2 hud-panel text-accent text-xs font-medium hover:shadow-[0_0_15px_rgba(0,212,255,0.2)] transition-all disabled:opacity-50 flex items-center gap-2"
         >
           {checking && <Loader2 className="w-3 h-3 animate-spin" />}
           {checking ? 'Prüfe...' : 'Prüfen'}
         </button>
       ) : claudeOk ? (
-        <div className="flex items-center gap-2 text-success text-xs font-hud">
+        <div className="flex items-center gap-2 text-success text-xs font-medium">
           <Check className="w-4 h-4" />
           Claude CLI gefunden
         </div>
@@ -133,7 +133,7 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
     <div key="done" className="flex flex-col items-center gap-6 text-center">
       <FolderPlus className="w-12 h-12 text-accent" />
       <div>
-        <h2 className="font-hud text-sm text-accent mb-2">Bereit!</h2>
+        <h2 className="font-semibold text-sm text-accent mb-2">Bereit!</h2>
         <p className="text-text-secondary text-xs max-w-md">
           Füge dein erstes Projekt hinzu und lass Metis für dich arbeiten.
         </p>
@@ -192,7 +192,7 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         <div className="flex justify-between mt-6">
           <button
             onClick={() => setStep(Math.max(0, step - 1))}
-            className={`px-4 py-2 text-xs font-hud text-text-muted hover:text-text-primary transition-colors ${step === 0 ? 'invisible' : ''}`}
+            className={`px-4 py-2 text-xs font-medium text-text-muted hover:text-text-primary transition-colors ${step === 0 ? 'invisible' : ''}`}
           >
             Zurück
           </button>
@@ -205,7 +205,7 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
                 onComplete()
               }
             }}
-            className="flex items-center gap-1.5 px-4 py-2 hud-panel text-accent text-xs font-hud hover:shadow-[0_0_15px_rgba(0,212,255,0.2)] transition-all"
+            className="flex items-center gap-1.5 px-4 py-2 hud-panel text-accent text-xs font-medium hover:shadow-[0_0_15px_rgba(0,212,255,0.2)] transition-all"
           >
             {step < steps.length - 1 ? 'Weiter' : 'Los geht\'s'}
             <ChevronRight className="w-3.5 h-3.5" />

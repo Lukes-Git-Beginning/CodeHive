@@ -2,16 +2,18 @@ import { useProjectStore } from '../../stores/projectStore'
 import { useAgentStore } from '../../stores/agentStore'
 import { useGitStore } from '../../stores/gitStore'
 import { GitBranch, Activity, FolderPlus, Bell, Settings, BrainCircuit } from 'lucide-react'
+import { DeepScanButton } from '../deepscan/DeepScanButton'
 
 interface ProjectBarProps {
   onSwitchProject: () => void
   onOpenNotifications: () => void
   onOpenSettings: () => void
   onOpenMindPalace: () => void
+  onOpenDeepScan: () => void
   unreadCount: number
 }
 
-export function ProjectBar({ onSwitchProject, onOpenNotifications, onOpenSettings, onOpenMindPalace, unreadCount }: ProjectBarProps) {
+export function ProjectBar({ onSwitchProject, onOpenNotifications, onOpenSettings, onOpenMindPalace, onOpenDeepScan, unreadCount }: ProjectBarProps) {
   const activeProject = useProjectStore((s) => s.getActiveProject())
   const phase = useAgentStore((s) => s.phase)
   const gitStatus = useGitStore((s) => s.status)
@@ -81,6 +83,7 @@ export function ProjectBar({ onSwitchProject, onOpenNotifications, onOpenSetting
             </span>
           )}
         </button>
+        <DeepScanButton onClick={onOpenDeepScan} />
         <button onClick={onOpenSettings}
           className="p-2 rounded text-text-muted hover:text-accent hover:bg-white/5 transition-all"
           aria-label="Einstellungen (Ctrl+,)"

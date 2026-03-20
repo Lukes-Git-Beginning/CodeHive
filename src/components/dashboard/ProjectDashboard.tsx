@@ -82,7 +82,7 @@ export function ProjectDashboard() {
     <div className="h-full overflow-y-auto p-4">
       {/* Header */}
       <div className="mb-4">
-        <h2 className="font-hud text-sm text-accent text-glow-green">{project.name}</h2>
+        <h2 className="font-semibold text-sm text-accent">{project.name}</h2>
         <p className="text-[11px] text-text-muted font-mono mt-0.5">{project.path}</p>
       </div>
 

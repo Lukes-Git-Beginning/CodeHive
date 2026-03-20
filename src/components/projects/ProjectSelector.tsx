@@ -10,20 +10,20 @@ import type { Project } from '../../types/project'
 import { GlowButton } from '../ui/GlowButton'
 
 const TECH_COLORS: Record<string, string> = {
-  React: 'bg-cyan/15 text-cyan',
+  React: 'bg-accent/15 text-accent',
   TypeScript: 'bg-holo-blue/15 text-holo-blue',
   JavaScript: 'bg-warning/15 text-warning',
   Python: 'bg-warning/15 text-warning',
   Rust: 'bg-danger/15 text-danger',
-  Go: 'bg-cyan/15 text-cyan',
+  Go: 'bg-accent/15 text-accent',
   'Node.js': 'bg-success/15 text-success',
   Flask: 'bg-success/15 text-success',
-  'Tailwind CSS': 'bg-cyan/15 text-cyan',
+  'Tailwind CSS': 'bg-accent/15 text-accent',
   Docker: 'bg-holo-blue/15 text-holo-blue',
   Vue: 'bg-success/15 text-success',
   Angular: 'bg-danger/15 text-danger',
   Svelte: 'bg-danger/15 text-danger',
-  Next: 'bg-violet/15 text-violet',
+  Next: 'bg-text-secondary/15 text-text-secondary',
 }
 
 interface ProjectSelectorProps {
@@ -118,7 +118,7 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
         >
           <Hexagon className="w-10 h-10 text-accent" />
         </motion.div>
-        <h2 className="font-hud text-lg text-accent holo-text mb-2">METIS</h2>
+        <h2 className="font-semibold text-lg text-accent mb-2">METIS</h2>
         <p className="text-sm text-text-muted max-w-md">
           Wähle ein Projekt oder erstelle ein neues, um mit den AI-Agenten zu arbeiten.
         </p>
@@ -134,14 +134,14 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
             transition={{ delay: i * 0.05 }}
             whileHover={{ y: -3 }}
             onClick={() => { setActiveProject(project.id); onProjectSelect() }}
-            className="glass neon-hover rounded-xl p-5 text-left group"
+            className="glass hover-lift rounded-xl p-5 text-left group"
           >
             <div className="flex items-start justify-between mb-3">
               <FolderOpen className="w-7 h-7 text-accent/50 group-hover:text-accent transition-colors" />
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={(e) => handleExportProject(project.id, e)}
-                  className="p-1 rounded text-text-muted hover:text-cyan hover:bg-cyan/10 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  className="p-1 rounded text-text-muted hover:text-accent hover:bg-accent/10 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
                   aria-label="Projekt exportieren"
                   title="Projekt exportieren"
                 >
@@ -177,7 +177,7 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
                      hover:border-accent/40 hover:bg-accent/5 transition-all group"
         >
           <Plus className="w-7 h-7 text-text-muted group-hover:text-accent mb-2 transition-colors" />
-          <span className="text-xs text-text-muted group-hover:text-text-secondary font-hud">
+          <span className="text-xs text-text-muted group-hover:text-text-secondary font-medium">
             New Project
           </span>
         </motion.button>
@@ -188,12 +188,12 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
           animate={{ opacity: 1 }}
           whileHover={{ y: -3 }}
           onClick={handleImportProject}
-          className="border border-dashed border-cyan/20 rounded-xl p-5
+          className="border border-dashed border-accent/20 rounded-xl p-5
                      flex flex-col items-center justify-center min-h-[160px]
-                     hover:border-cyan/40 hover:bg-cyan/5 transition-all group"
+                     hover:border-accent/40 hover:bg-accent/5 transition-all group"
         >
-          <Upload className="w-7 h-7 text-text-muted group-hover:text-cyan mb-2 transition-colors" />
-          <span className="text-xs text-text-muted group-hover:text-text-secondary font-hud">
+          <Upload className="w-7 h-7 text-text-muted group-hover:text-accent mb-2 transition-colors" />
+          <span className="text-xs text-text-muted group-hover:text-text-secondary font-medium">
             Import Project
           </span>
         </motion.button>
@@ -217,7 +217,7 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
               className="glass-elevated rounded-2xl p-6 w-full max-w-md"
             >
               <div className="flex items-center justify-between mb-5">
-                <h3 className="font-hud text-sm text-accent">New Project</h3>
+                <h3 className="font-semibold text-sm text-accent">New Project</h3>
                 <button onClick={() => setShowAdd(false)} className="text-text-muted hover:text-text-primary">
                   <X className="w-4 h-4" />
                 </button>
@@ -225,7 +225,7 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
 
               <div className="space-y-4">
                 <div>
-                  <label className="font-hud text-[10px] text-text-muted mb-1.5 block">Name</label>
+                  <label className="font-medium text-[10px] text-text-muted mb-1.5 block">Name</label>
                   <input
                     type="text"
                     value={newName}
@@ -237,7 +237,7 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
                   />
                 </div>
                 <div>
-                  <label className="font-hud text-[10px] text-text-muted mb-1.5 block">Path</label>
+                  <label className="font-medium text-[10px] text-text-muted mb-1.5 block">Path</label>
                   <input
                     type="text"
                     value={newPath}
@@ -250,7 +250,7 @@ export function ProjectSelector({ onProjectSelect }: ProjectSelectorProps) {
 
                 {(detecting || detectedStack.length > 0) && (
                   <div>
-                    <label className="font-hud text-[10px] text-text-muted mb-1.5 block">Detected Stack</label>
+                    <label className="font-medium text-[10px] text-text-muted mb-1.5 block">Detected Stack</label>
                     <div className="flex flex-wrap gap-1.5">
                       {detecting ? (
                         <span className="flex items-center gap-1 text-[11px] text-text-muted">

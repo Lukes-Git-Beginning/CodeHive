@@ -170,7 +170,7 @@ export function MetricsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-hud text-sm text-accent text-glow-green">{project.name}</h2>
+          <h2 className="text-base font-semibold text-accent">{project.name}</h2>
           <p className="text-[11px] text-text-muted font-mono mt-0.5">{project.path}</p>
         </div>
         <button
@@ -195,7 +195,7 @@ export function MetricsDashboard() {
           <div className="glass neon-hover rounded-xl p-3.5 flex flex-col items-center justify-center gap-2">
             <div className="flex items-center gap-1.5 self-start">
               <Heart className="w-3 h-3 text-text-muted" />
-              <span className="font-hud text-[9px] text-text-muted">Systemgesundheit</span>
+              <span className="text-xs font-medium text-text-muted">Systemgesundheit</span>
             </div>
             <MiniDonut value={metricsHealthScore} color={hColor} size={80} />
           </div>
@@ -204,7 +204,7 @@ export function MetricsDashboard() {
           <div className="glass neon-hover rounded-xl p-3.5 flex flex-col items-center justify-center gap-2">
             <div className="flex items-center gap-1.5 self-start">
               <TrendingUp className="w-3 h-3 text-text-muted" />
-              <span className="font-hud text-[9px] text-text-muted">Erfolgsrate</span>
+              <span className="text-xs font-medium text-text-muted">Erfolgsrate</span>
             </div>
             <MiniDonut value={metricsSuccessRate} color="var(--color-accent)" size={80} />
             <span className="text-[9px] text-text-muted font-mono">
@@ -216,9 +216,9 @@ export function MetricsDashboard() {
           <div className="glass neon-hover rounded-xl p-3.5 flex flex-col gap-2">
             <div className="flex items-center gap-1.5">
               <Clock className="w-3 h-3 text-text-muted" />
-              <span className="font-hud text-[9px] text-text-muted">Avg. Dauer</span>
+              <span className="text-xs font-medium text-text-muted">Avg. Dauer</span>
             </div>
-            <span className="text-lg font-mono text-cyan">{formatDuration(metricsAvgDuration)}</span>
+            <span className="text-lg font-mono text-accent">{formatDuration(metricsAvgDuration)}</span>
             <Sparkline data={metricsDurationHistory} color="var(--color-cyan)" width={140} height={28} />
           </div>
 
@@ -226,9 +226,9 @@ export function MetricsDashboard() {
           <div className="glass neon-hover rounded-xl p-3.5 flex flex-col gap-2">
             <div className="flex items-center gap-1.5">
               <Zap className="w-3 h-3 text-text-muted" />
-              <span className="font-hud text-[9px] text-text-muted">~Token-Verbrauch</span>
+              <span className="text-xs font-medium text-text-muted">~Token-Verbrauch</span>
             </div>
-            <span className="text-lg font-mono text-violet">~{formatTokens(metricsTokenEstimate)}</span>
+            <span className="text-lg font-mono text-text-secondary">~{formatTokens(metricsTokenEstimate)}</span>
             <div className="flex items-center gap-2 mt-auto">
               <span className="text-[9px] text-text-muted font-mono">{metricsTotalRuns} Runs gesamt</span>
               <span className="text-[9px] text-text-muted font-mono">{fileCount} Dateien</span>
@@ -241,7 +241,7 @@ export function MetricsDashboard() {
       <div className="grid grid-cols-5 gap-3">
         {/* Task Distribution */}
         <div className="col-span-3 glass rounded-xl p-3.5">
-          <span className="font-hud text-[9px] text-text-muted block mb-3">Aufgabenverteilung</span>
+          <span className="text-xs font-medium text-text-muted block mb-3">Aufgabenverteilung</span>
           {taskTypeData.length > 0 ? (
             <MiniBar data={taskTypeData} />
           ) : (
@@ -251,7 +251,7 @@ export function MetricsDashboard() {
 
         {/* Daily Activity */}
         <div className="col-span-2 glass rounded-xl p-3.5">
-          <span className="font-hud text-[9px] text-text-muted block mb-3">Aktivität (14 Tage)</span>
+          <span className="text-xs font-medium text-text-muted block mb-3">Aktivität (14 Tage)</span>
           <DailyActivity dailyCounts={metricsDailyRunCounts} />
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
+import { createMemoryRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { invoke } from '@tauri-apps/api/core'
 import { FirstRunWizard } from './components/onboarding/FirstRunWizard'
@@ -6,21 +7,16 @@ import { ProjectSelector } from './components/projects/ProjectSelector'
 import { SettingsPanel } from './components/settings/SettingsPanel'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { ToastContainer } from './components/ui/Toast'
-import { JarvisCore } from './components/jarvis/JarvisCore'
-import { Omnibox } from './components/jarvis/Omnibox'
-import { ProactiveSuggestions } from './components/jarvis/ProactiveSuggestions'
-import { ConversationStream } from './components/jarvis/ConversationStream'
-import { MindPalace } from './components/jarvis/MindPalace'
-import { ProjectBar } from './components/jarvis/ProjectBar'
-import { ThoughtNodes } from './components/jarvis/ThoughtNodes'
-import { ResultsSummary } from './components/jarvis/ResultsSummary'
 import { CommandPalette } from './components/jarvis/CommandPalette'
-import type { AgentRun } from './types/agent'
+import { NotificationCenter } from './components/ui/NotificationCenter'
+import { ShortcutOverlay } from './components/ui/ShortcutOverlay'
+import { AppShell } from './components/metis/AppShell'
+import { ChatPage } from './components/chat/ChatPage'
 import { useProjectStore } from './stores/projectStore'
-import { useAgentStore } from './stores/agentStore'
 import { useProfileStore } from './stores/profileStore'
 import { useNotificationStore } from './stores/notificationStore'
 import { useChatStore } from './stores/chatStore'
+import { useUIStore } from './stores/uiStore'
 import { quickScan } from './services/autoScan'
 import { captureAndAnalyze } from './services/vision'
 import { orchestrate } from './services/orchestrator'
@@ -29,45 +25,64 @@ import { triggerSelfImprovement } from './services/selfImprove'
 import { useGitStore } from './stores/gitStore'
 import { useSchedulerStore } from './stores/schedulerStore'
 import { useThemeStore } from './stores/themeStore'
-import { NotificationCenter } from './components/ui/NotificationCenter'
-import { ShortcutOverlay } from './components/ui/ShortcutOverlay'
-import { Map, Brain, LayoutDashboard, X, Cpu, ScrollText, Settings } from 'lucide-react'
+import { Settings, Loader2 } from 'lucide-react'
 
-// Lazy-loaded panels (opened as overlays)
-const RoadmapView = lazy(() => import('./components/roadmap/RoadmapView').then(m => ({ default: m.RoadmapView })))
+// Lazy-loaded pages
 const KnowledgePanel = lazy(() => import('./components/knowledge/KnowledgePanel').then(m => ({ default: m.KnowledgePanel })))
-const ProjectDashboard = lazy(() => import('./components/dashboard/MetricsDashboard').then(m => ({ default: m.MetricsDashboard })))
-const TemplateSelectorPanel = lazy(() => import('./components/ui/TemplateSelector').then(m => ({ default: m.TemplateSelector })))
+const MetricsDashboard = lazy(() => import('./components/dashboard/MetricsDashboard').then(m => ({ default: m.MetricsDashboard })))
 const AgentsPanel = lazy(() => import('./components/agents/AgentsPanel').then(m => ({ default: m.AgentsPanel })))
 const LogsPanel = lazy(() => import('./components/logs/LogsPanel').then(m => ({ default: m.LogsPanel })))
+const DeepScanPanel = lazy(() => import('./components/deepscan/DeepScanPanel').then(m => ({ default: m.DeepScanPanel })))
+const RoadmapView = lazy(() => import('./components/roadmap/RoadmapView').then(m => ({ default: m.RoadmapView })))
 
-type OverlayPanel = 'roadmap' | 'knowledge' | 'dashboard' | 'templates' | 'agents' | 'logs' | null
+function PageWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="w-5 h-5 text-accent animate-spin" />
+      </div>
+    }>
+      <ErrorBoundary label="page">
+        <div className="h-full overflow-y-auto">
+          {children}
+        </div>
+      </ErrorBoundary>
+    </Suspense>
+  )
+}
+
+const router = createMemoryRouter([
+  {
+    path: '/',
+    element: <AppShell />,
+    children: [
+      { index: true, element: <Navigate to="/chat" replace /> },
+      { path: 'chat', element: <ChatPage /> },
+      { path: 'knowledge', element: <PageWrapper><KnowledgePanel /></PageWrapper> },
+      { path: 'agents', element: <PageWrapper><AgentsPanel /></PageWrapper> },
+      { path: 'dashboard', element: <PageWrapper><MetricsDashboard /></PageWrapper> },
+      { path: 'logs', element: <PageWrapper><LogsPanel /></PageWrapper> },
+      { path: 'deepscan', element: <PageWrapper><DeepScanPanel /></PageWrapper> },
+      { path: 'roadmap', element: <PageWrapper><RoadmapView /></PageWrapper> },
+    ],
+  },
+])
 
 function App() {
   const [showWizard, setShowWizard] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
-  const [isMindPalaceOpen, setIsMindPalaceOpen] = useState(false)
-  const [completedRun, setCompletedRun] = useState<AgentRun | null>(null)
-  const [overlayPanel, setOverlayPanel] = useState<OverlayPanel>(null)
-  const [showCommandPalette, setShowCommandPalette] = useState(false)
-  const [isNotifCenterOpen, setIsNotifCenterOpen] = useState(false)
-  const [showShortcutOverlay, setShowShortcutOverlay] = useState(false)
   const activeProjectId = useProjectStore((s) => s.activeProjectId)
   const initialized = useProjectStore((s) => s.initialized)
   const initialize = useProjectStore((s) => s.initialize)
-  const phase = useAgentStore((s) => s.phase)
-  const pendingPlan = useAgentStore((s) => s.pendingPlan)
-  const approvePlan = useAgentStore((s) => s.approvePlan)
-  const rejectPlan = useAgentStore((s) => s.rejectPlan)
-  const latestRun = useAgentStore((s) => s.runHistory[0] ?? null)
   const activeProject = useProjectStore((s) => s.getActiveProject())
 
-  // Show results summary when a run completes
-  useEffect(() => {
-    if (phase === 'done' && latestRun && !completedRun) {
-      setCompletedRun(latestRun)
-    }
-  }, [phase, latestRun, completedRun])
+  const settingsOpen = useUIStore((s) => s.settingsOpen)
+  const setSettingsOpen = useUIStore((s) => s.setSettingsOpen)
+  const commandPaletteOpen = useUIStore((s) => s.commandPaletteOpen)
+  const setCommandPaletteOpen = useUIStore((s) => s.setCommandPaletteOpen)
+  const notificationCenterOpen = useUIStore((s) => s.notificationCenterOpen)
+  const setNotificationCenterOpen = useUIStore((s) => s.setNotificationCenterOpen)
+  const shortcutOverlayOpen = useUIStore((s) => s.shortcutOverlayOpen)
+  const setShortcutOverlayOpen = useUIStore((s) => s.setShortcutOverlayOpen)
 
   // Init
   const loadProfile = useProfileStore((s) => s.loadProfile)
@@ -75,6 +90,7 @@ function App() {
     initialize()
     loadProfile()
     useThemeStore.getState().loadTheme()
+    useUIStore.getState().loadUI()
     useSchedulerStore.getState().start()
     invoke('get_setting', { key: 'onboarding_completed' }).then((val) => {
       if (!val) setShowWizard(true)
@@ -88,13 +104,13 @@ function App() {
     if (activeProjectId) loadMessages(activeProjectId)
   }, [activeProjectId, loadMessages])
 
-  // Clipboard monitoring — detect code and suggest analysis
+  // Clipboard monitoring
   useEffect(() => {
     if (!activeProjectId) return
     startClipboardMonitor((code) => {
       useNotificationStore.getState().addNotification(
         'info',
-        `Code im Clipboard erkannt (${code.split('\n').length} Zeilen) — füge ihn in die Omnibox ein um ihn zu analysieren.`
+        `Code im Clipboard erkannt (${code.split('\n').length} Zeilen) — füge ihn in den Chat ein um ihn zu analysieren.`
       )
     })
     return () => stopClipboardMonitor()
@@ -122,48 +138,37 @@ function App() {
   }, [activeProject?.id])
 
   // Keyboard shortcuts
-  const unreadCount = useNotificationStore((s) => s.notifications.filter((n) => !n.read).length)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
         if (e.shiftKey && e.key === 'T') { e.preventDefault(); useThemeStore.getState().toggleTheme(); return }
         if (e.shiftKey && e.key === 'S') { e.preventDefault(); captureAndAnalyze(); return }
-        if (e.key === 'r') { e.preventDefault(); setOverlayPanel(overlayPanel === 'roadmap' ? null : 'roadmap') }
-        if (e.key === 'k') { e.preventDefault(); setOverlayPanel(overlayPanel === 'knowledge' ? null : 'knowledge') }
-        if (e.key === 'd') { e.preventDefault(); setOverlayPanel(overlayPanel === 'dashboard' ? null : 'dashboard') }
-        if (e.key === 'm') { e.preventDefault(); setIsMindPalaceOpen((p) => !p) }
-        if (e.key === 'n') { e.preventDefault(); setIsNotifCenterOpen((p) => !p) }
-        if (e.key === 't') { e.preventDefault(); setOverlayPanel(overlayPanel === 'templates' ? null : 'templates') }
-        if (e.key === ',') { e.preventDefault(); setShowSettings((p) => !p) }
-        if (e.key === 'p') { e.preventDefault(); setShowCommandPalette((p) => !p) }
+        if (e.key === 'n') { e.preventDefault(); setNotificationCenterOpen(!notificationCenterOpen) }
+        if (e.key === ',') { e.preventDefault(); setSettingsOpen(!settingsOpen) }
+        if (e.key === 'p') { e.preventDefault(); setCommandPaletteOpen(!commandPaletteOpen) }
       }
-      // ? for shortcut overlay (only when no input focused)
       if (e.key === '?' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
         e.preventDefault()
-        setShowShortcutOverlay((p) => !p)
+        setShortcutOverlayOpen(!shortcutOverlayOpen)
       }
       if (e.key === 'Escape') {
-        if (showShortcutOverlay) { setShowShortcutOverlay(false); return }
-        if (isNotifCenterOpen) { setIsNotifCenterOpen(false); return }
-        setOverlayPanel(null)
-        setIsMindPalaceOpen(false)
+        if (shortcutOverlayOpen) { setShortcutOverlayOpen(false); return }
+        if (notificationCenterOpen) { setNotificationCenterOpen(false); return }
+        if (commandPaletteOpen) { setCommandPaletteOpen(false); return }
+        if (settingsOpen) { setSettingsOpen(false); return }
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [overlayPanel, showShortcutOverlay, isNotifCenterOpen])
+  }, [settingsOpen, commandPaletteOpen, notificationCenterOpen, shortcutOverlayOpen])
 
   // Loading state
   if (!initialized) {
     return (
-      <div className="flex items-center justify-center h-screen bg-bg-deep grid-bg">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            className="w-10 h-10 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"
-          />
-          <p className="font-hud text-xs text-accent holo-text">Metis wird initialisiert...</p>
+      <div className="flex items-center justify-center h-screen bg-bg-deep">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+          <Loader2 className="w-8 h-8 text-accent animate-spin mx-auto mb-4" />
+          <p className="text-sm text-text-muted">Metis wird initialisiert...</p>
         </motion.div>
       </div>
     )
@@ -172,255 +177,62 @@ function App() {
   // First-run wizard
   if (showWizard && !activeProjectId) {
     return (
-      <div className="relative w-screen h-screen bg-bg-deep grid-bg overflow-hidden">
+      <div className="relative w-screen h-screen bg-bg-deep overflow-hidden">
         <FirstRunWizard onComplete={() => setShowWizard(false)} />
         <ToastContainer />
       </div>
     )
   }
 
-  // No project selected → project selector
+  // No project selected
   if (!activeProjectId) {
     return (
-      <div className="relative w-screen h-screen bg-bg-deep grid-bg overflow-hidden">
+      <div className="relative w-screen h-screen bg-bg-deep overflow-hidden">
         <div className="flex-1 flex flex-col h-full">
           <ProjectSelector onProjectSelect={() => {}} />
         </div>
         <button
-          onClick={() => setShowSettings(true)}
+          onClick={() => setSettingsOpen(true)}
           aria-label="Einstellungen öffnen"
-          className="absolute bottom-6 right-6 z-30 p-3 glass-elevated rounded-full text-text-muted hover:text-accent neon-hover transition-all"
+          className="absolute bottom-6 right-6 z-30 p-3 bg-bg-elevated rounded-xl border border-border text-text-muted hover:text-accent hover-lift transition-all"
         >
           <Settings className="w-5 h-5" />
         </button>
-        <SettingsModal show={showSettings} onClose={() => setShowSettings(false)} />
+        <SettingsModal show={settingsOpen} onClose={() => setSettingsOpen(false)} />
         <ToastContainer />
       </div>
     )
   }
 
-  // ── METIS LAYOUT ──
+  // ── METIS LAYOUT (Router-based) ──
   return (
-    <div className="relative w-screen h-screen bg-bg-deep grid-bg overflow-hidden">
-      {/* Project Context Bar (includes top-right buttons) */}
-      <ProjectBar
-        onSwitchProject={() => useProjectStore.getState().setActiveProject(null)}
-        onOpenNotifications={() => setIsNotifCenterOpen(true)}
-        onOpenSettings={() => setShowSettings(true)}
-        onOpenMindPalace={() => setIsMindPalaceOpen(true)}
-        unreadCount={unreadCount}
-      />
-
-      {/* Mind Palace Overlay */}
-      <MindPalace
-        isOpen={isMindPalaceOpen}
-        onClose={() => setIsMindPalaceOpen(false)}
-      />
+    <div className="relative w-screen h-screen bg-bg-deep overflow-hidden">
+      <RouterProvider router={router} />
 
       {/* Notification Center */}
       <NotificationCenter
-        isOpen={isNotifCenterOpen}
-        onClose={() => setIsNotifCenterOpen(false)}
+        isOpen={notificationCenterOpen}
+        onClose={() => setNotificationCenterOpen(false)}
       />
 
       {/* Shortcut Overlay */}
       <ShortcutOverlay
-        isOpen={showShortcutOverlay}
-        onClose={() => setShowShortcutOverlay(false)}
+        isOpen={shortcutOverlayOpen}
+        onClose={() => setShortcutOverlayOpen(false)}
       />
-
-      {/* Main Interaction Area */}
-      <main className="w-full h-full flex flex-col items-center justify-center relative z-20 px-4 pt-16 pb-14 overflow-hidden gap-2">
-        <ErrorBoundary label="Metis">
-          {/* Proactive Suggestions */}
-          <ProactiveSuggestions />
-
-          <div className="relative flex flex-col items-center w-full max-w-4xl mx-auto">
-            {/* Core Sphere + Agent Badges (ThoughtNodes positioned relative to this container) */}
-            <div className="relative">
-              <ThoughtNodes onOpenMindPalace={() => setIsMindPalaceOpen(true)} />
-              <JarvisCore />
-            </div>
-
-            {/* Plan Approval */}
-            <AnimatePresence>
-              {pendingPlan && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="w-full max-w-2xl hud-panel hud-brackets p-5 mb-4"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-hud text-[10px] text-accent">
-                      {pendingPlan.tasks.length} Tasks · {pendingPlan.waveCount} Wellen
-                    </span>
-                  </div>
-                  <div className="space-y-1.5 mb-4 max-h-40 overflow-y-auto">
-                    {pendingPlan.tasks.map((task) => (
-                      <div key={task.id} className="flex items-center gap-2 text-[10px] glass-holo rounded-sm px-3 py-2">
-                        <span className="text-text-primary flex-1 truncate">{task.name}</span>
-                        {task.role && (
-                          <span className="font-mono text-[8px] text-text-muted bg-bg-surface px-1 rounded">{task.role}</span>
-                        )}
-                        <span className="font-mono text-[8px] text-cyan">{task.model}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={approvePlan}
-                      className="flex-1 py-2 rounded-sm bg-accent/15 border border-accent/30 text-accent text-xs font-hud
-                                 hover:bg-accent/25 hover:shadow-[0_0_20px_rgba(0,212,255,0.3)] transition-all"
-                    >
-                      Execute
-                    </button>
-                    <button
-                      onClick={rejectPlan}
-                      className="flex-1 py-2 rounded-lg bg-danger-dim border border-danger/30 text-danger text-xs font-hud
-                                 hover:bg-danger/25 hover:shadow-[0_0_20px_rgba(255,51,102,0.3)] transition-all"
-                    >
-                      Abort
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Omnibox */}
-            <div className="w-full flex justify-center relative z-30">
-              <Omnibox />
-            </div>
-
-            {/* Conversation Stream */}
-            <div className="w-full flex justify-center">
-              <ConversationStream />
-            </div>
-          </div>
-        </ErrorBoundary>
-      </main>
-
-      {/* Results Summary Modal */}
-      <AnimatePresence>
-        {completedRun && (
-          <ResultsSummary
-            run={completedRun}
-            onClose={() => { setCompletedRun(null); useAgentStore.getState().setPhase('idle') }}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Overlay Panels (Roadmap, Knowledge, Dashboard) */}
-      <AnimatePresence>
-        {overlayPanel && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6"
-            onClick={() => setOverlayPanel(null)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-label={overlayPanel ?? undefined}
-              className="hud-panel hud-brackets w-full max-w-5xl h-[80vh] overflow-hidden flex flex-col"
-            >
-              <div className="flex items-center justify-between p-4 border-b border-cyan/10 shrink-0">
-                <span className="font-hud text-xs text-accent">
-                  {overlayPanel === 'roadmap' && 'Roadmap'}
-                  {overlayPanel === 'knowledge' && 'Knowledge Base'}
-                  {overlayPanel === 'dashboard' && 'Dashboard'}
-                  {overlayPanel === 'templates' && 'Agent Templates'}
-                  {overlayPanel === 'agents' && 'Agents'}
-                  {overlayPanel === 'logs' && 'Run Logs'}
-                </span>
-                <button
-                  onClick={() => setOverlayPanel(null)}
-                  aria-label="Schließen"
-                  className="p-1.5 hover:bg-bg-surface rounded-lg text-text-muted hover:text-text-primary transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto">
-                <ErrorBoundary label={overlayPanel}>
-                  <Suspense fallback={<div className="flex items-center justify-center h-full"><span className="text-text-muted font-mono text-xs">Laden...</span></div>}>
-                    {overlayPanel === 'roadmap' && <RoadmapView />}
-                    {overlayPanel === 'knowledge' && <KnowledgePanel />}
-                    {overlayPanel === 'dashboard' && <ProjectDashboard />}
-                    {overlayPanel === 'templates' && <TemplateSelectorPanel />}
-                    {overlayPanel === 'agents' && <AgentsPanel />}
-                    {overlayPanel === 'logs' && <LogsPanel />}
-                  </Suspense>
-                </ErrorBoundary>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Bottom Navigation Bar */}
-      <div className="absolute bottom-0 w-full h-12 z-40 flex items-center justify-between px-5"
-        style={{
-          background: 'linear-gradient(0deg, rgba(10, 14, 39, 0.95) 0%, rgba(10, 14, 39, 0.7) 100%)',
-          borderTop: '1px solid rgba(0, 212, 255, 0.08)',
-        }}
-      >
-        {/* Left: Navigation tabs */}
-        <div className="flex items-center gap-0.5" role="tablist" aria-label="Panel Navigation">
-          {([
-            { id: 'dashboard' as const, label: 'DASHBOARD', icon: LayoutDashboard },
-            { id: 'roadmap' as const, label: 'ROADMAP', icon: Map },
-            { id: 'knowledge' as const, label: 'KNOWLEDGE', icon: Brain },
-            { id: 'agents' as const, label: 'AGENTS', icon: Cpu },
-            { id: 'logs' as const, label: 'LOGS', icon: ScrollText },
-          ]).map((tab) => {
-            const isTabActive = overlayPanel === tab.id
-            const Icon = tab.icon
-            return (
-              <button
-                key={tab.id}
-                role="tab"
-                aria-selected={isTabActive}
-                onClick={() => setOverlayPanel(isTabActive ? null : tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded transition-all font-hud text-[10px] tracking-wider ${
-                  isTabActive
-                    ? 'text-accent bg-accent/10 shadow-[0_0_10px_rgba(0,212,255,0.1)]'
-                    : 'text-text-muted hover:text-text-secondary hover:bg-white/5'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Right: Status */}
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-[9px] font-hud text-accent">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            API: OK
-          </span>
-          <span className="text-[9px] font-mono text-text-muted">
-            {new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        </div>
-      </div>
 
       {/* Command Palette */}
       <CommandPalette
-        isOpen={showCommandPalette}
-        onClose={() => setShowCommandPalette(false)}
-        onOpenPanel={setOverlayPanel}
-        onOpenSettings={() => setShowSettings(true)}
-        onOpenMindPalace={() => setIsMindPalaceOpen(true)}
-        onOpenNotifications={() => setIsNotifCenterOpen(true)}
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onOpenPanel={(panel) => {
+          // Navigate via router
+          if (panel) router.navigate(`/${panel}`)
+          setCommandPaletteOpen(false)
+        }}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onOpenMindPalace={() => {}} // deprecated
+        onOpenNotifications={() => setNotificationCenterOpen(true)}
         onSelfImprove={() => triggerSelfImprovement()}
         onSwitchProject={() => useProjectStore.getState().setActiveProject(null)}
         onScreenshot={() => captureAndAnalyze()}
@@ -436,7 +248,7 @@ function App() {
       />
 
       {/* Settings Modal */}
-      <SettingsModal show={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsModal show={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       {/* Toast Notifications */}
       <ToastContainer />
@@ -456,14 +268,14 @@ function SettingsModal({ show, onClose }: { show: boolean; onClose: () => void }
           onClick={onClose}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            exit={{ opacity: 0, scale: 0.95, y: 12 }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="Einstellungen"
-            className="hud-panel hud-brackets w-full max-w-xl max-h-[80vh] overflow-hidden"
+            className="w-full max-w-xl max-h-[80vh] overflow-hidden rounded-xl bg-bg-deep border border-border shadow-floating"
           >
             <SettingsPanel />
           </motion.div>

@@ -20,13 +20,13 @@ export function StatsRow({ project, fileCount, runCount }: StatsRowProps) {
       icon: FileText,
       label: 'Files',
       value: fileCount > 0 ? fileCount.toLocaleString() : '...',
-      color: 'text-cyan',
+      color: 'text-accent',
     },
     {
       icon: Zap,
       label: 'Agent Runs',
       value: runCount.toString(),
-      color: 'text-violet',
+      color: 'text-text-secondary',
     },
     {
       icon: Clock,
@@ -50,7 +50,7 @@ export function StatsRow({ project, fileCount, runCount }: StatsRowProps) {
           >
             <div className="flex items-center gap-2 mb-2">
               <Icon className={`w-3.5 h-3.5 ${stat.color}`} />
-              <span className="font-hud text-[9px] text-text-muted">{stat.label}</span>
+              <span className="text-xs font-medium text-text-muted">{stat.label}</span>
             </div>
             <p className={`text-sm font-medium ${stat.color} truncate`}>{stat.value}</p>
           </motion.div>

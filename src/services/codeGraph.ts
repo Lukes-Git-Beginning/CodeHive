@@ -67,9 +67,31 @@ export async function buildCodeGraph(projectId: string, projectPath: string): Pr
   }
 
   // Get project files from Tauri backend
+  interface FileEntry {
+    name: string
+    path: string
+    is_dir: boolean
+    size: number
+    children: FileEntry[]
+  }
+
+  function flattenEntries(entries: FileEntry[], prefix = ''): string[] {
+    const paths: string[] = []
+    for (const entry of entries) {
+      const fullPath = prefix ? `${prefix}/${entry.name}` : entry.name
+      if (entry.is_dir) {
+        paths.push(...flattenEntries(entry.children, fullPath))
+      } else {
+        paths.push(fullPath)
+      }
+    }
+    return paths
+  }
+
   let files: string[] = []
   try {
-    files = await invoke<string[]>('list_project_files', { path: projectPath })
+    const entries = await invoke<FileEntry[]>('list_project_files', { path: projectPath })
+    files = flattenEntries(entries)
   } catch {
     return graph
   }

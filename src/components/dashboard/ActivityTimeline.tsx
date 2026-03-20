@@ -28,7 +28,7 @@ function timeAgo(dateStr: string): string {
 
 const statusConfig: Record<string, { icon: typeof CheckCircle; color: string }> = {
   completed: { icon: CheckCircle, color: 'text-accent' },
-  running: { icon: Clock, color: 'text-cyan' },
+  running: { icon: Clock, color: 'text-accent' },
   done: { icon: CheckCircle, color: 'text-accent' },
   failed: { icon: AlertCircle, color: 'text-danger' },
   error: { icon: AlertCircle, color: 'text-danger' },
@@ -38,7 +38,7 @@ export function ActivityTimeline({ runs, loading }: ActivityTimelineProps) {
   if (loading) {
     return (
       <div className="glass rounded-xl p-4 h-full">
-        <div className="font-hud text-[10px] text-violet mb-3">Activity</div>
+        <div className="text-sm font-medium text-text-secondary mb-3">Activity</div>
         <p className="text-xs text-text-muted font-mono">Loading history...</p>
       </div>
     )
@@ -47,7 +47,7 @@ export function ActivityTimeline({ runs, loading }: ActivityTimelineProps) {
   return (
     <div className="glass rounded-xl p-4 h-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
-        <span className="font-hud text-[10px] text-violet">Activity</span>
+        <span className="text-sm font-medium text-text-secondary">Activity</span>
         <span className="text-[10px] text-text-muted font-mono">{runs.length} runs</span>
       </div>
 
@@ -81,7 +81,7 @@ export function ActivityTimeline({ runs, loading }: ActivityTimelineProps) {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-hud text-[9px] text-text-muted">{run.agent_type}</span>
+                      <span className="text-xs font-medium text-text-muted">{run.agent_type}</span>
                       <span className="text-[9px] text-text-muted font-mono">{timeAgo(run.started_at)}</span>
                     </div>
                     <p className="text-[11px] text-text-secondary truncate mt-0.5">{run.prompt}</p>

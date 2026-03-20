@@ -5,11 +5,11 @@ import { useAgentStore } from '../../stores/agentStore'
 import type { AgentInstance } from '../../types/agent'
 import { StatusDot } from '../ui/StatusDot'
 
-const DEFAULT_STATUS = { color: 'text-cyan', dotStatus: 'busy' as const, label: 'Active' }
+const DEFAULT_STATUS = { color: 'text-accent', dotStatus: 'busy' as const, label: 'Active' }
 
 const statusMap: Record<string, { color: string; dotStatus: 'online' | 'busy' | 'idle' | 'error'; label: string }> = {
   idle: { color: 'text-text-muted', dotStatus: 'idle', label: 'Idle' },
-  thinking: { color: 'text-cyan', dotStatus: 'busy', label: 'Thinking' },
+  thinking: { color: 'text-accent', dotStatus: 'busy', label: 'Thinking' },
   working: { color: 'text-accent', dotStatus: 'online', label: 'Working' },
   running: { color: 'text-accent', dotStatus: 'online', label: 'Running' },
   done: { color: 'text-accent', dotStatus: 'online', label: 'Done' },
@@ -17,12 +17,12 @@ const statusMap: Record<string, { color: string; dotStatus: 'online' | 'busy' | 
 }
 
 const roleColors: Record<string, string> = {
-  orchestrator: 'text-cyan border-cyan/20 bg-cyan/8',
+  orchestrator: 'text-accent border-cyan/20 bg-cyan/8',
   frontend: 'text-[#60a5fa] border-[#60a5fa]/20 bg-[#60a5fa]/8',
   backend: 'text-accent border-accent/20 bg-accent/8',
   testing: 'text-violet border-violet/20 bg-violet/8',
   architect: 'text-warning border-warning/20 bg-warning/8',
-  devops: 'text-cyan border-cyan/20 bg-cyan/8',
+  devops: 'text-accent border-cyan/20 bg-cyan/8',
   security: 'text-danger border-danger/20 bg-danger/8',
   uiux: 'text-[#f472b6] border-[#f472b6]/20 bg-[#f472b6]/8',
 }
@@ -32,7 +32,7 @@ const phaseLabels: Record<string, { label: string; icon: typeof Bot; color: stri
   planning: { label: 'Planning', icon: Search, color: 'text-violet' },
   awaiting_approval: { label: 'Awaiting', icon: Clock, color: 'text-warning' },
   executing: { label: 'Executing', icon: Zap, color: 'text-accent' },
-  verifying: { label: 'Verifying', icon: Shield, color: 'text-cyan' },
+  verifying: { label: 'Verifying', icon: Shield, color: 'text-accent' },
   done: { label: 'Complete', icon: CheckCircle, color: 'text-accent' },
 }
 
@@ -72,7 +72,7 @@ const AgentCard = memo(function AgentCard({ agent }: { agent: AgentInstance }) {
       className={`glass rounded-lg p-3 mb-2 transition-all ${isActive ? 'animate-border-pulse' : ''}`}
     >
       <div className="flex items-center justify-between mb-1.5">
-        <span className={`text-[10px] font-hud px-2 py-0.5 rounded border ${roleStyle}`}>
+        <span className={`text-[10px] font-medium px-2 py-0.5 rounded border ${roleStyle}`}>
           {agent.role}
         </span>
         <div className="flex items-center gap-1.5">
@@ -157,7 +157,7 @@ export function AgentMonitor() {
           </div>
 
           <div>
-            <div className={`font-hud text-[10px] ${phaseInfo.color}`}>{phaseInfo.label}</div>
+            <div className={`font-medium text-[10px] ${phaseInfo.color}`}>{phaseInfo.label}</div>
             {totalWaves > 0 && (
               <div className="text-[10px] text-text-muted font-mono">
                 Wave {currentWave}/{totalWaves}
@@ -204,7 +204,7 @@ export function AgentMonitor() {
         {/* History */}
         {runHistory.length > 0 && !currentRun && (
           <div className="mt-4 pt-4 border-t border-border">
-            <span className="font-hud text-[9px] text-text-muted block mb-2">History</span>
+            <span className="font-medium text-[9px] text-text-muted block mb-2">History</span>
             {runHistory.slice(0, 5).map((run) => (
               <div key={run.id} className="mb-1.5 p-2 glass rounded-lg text-[11px]">
                 <div className="flex justify-between">

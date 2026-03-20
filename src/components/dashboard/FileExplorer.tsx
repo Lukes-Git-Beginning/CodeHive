@@ -22,10 +22,10 @@ function FileTreeNode({ entry, depth = 0 }: { entry: FileEntry; depth?: number }
 
   const ext = entry.name.split('.').pop()?.toLowerCase() || ''
   const extColors: Record<string, string> = {
-    ts: 'text-cyan', tsx: 'text-cyan',
+    ts: 'text-accent', tsx: 'text-accent',
     js: 'text-warning', jsx: 'text-warning',
     py: 'text-accent', rs: 'text-danger',
-    css: 'text-violet', html: 'text-danger',
+    css: 'text-text-secondary', html: 'text-danger',
     json: 'text-warning', md: 'text-text-secondary',
     toml: 'text-warning', yaml: 'text-accent', yml: 'text-accent',
   }
@@ -95,7 +95,7 @@ export function FileExplorer({ files, loading }: FileExplorerProps) {
   if (loading) {
     return (
       <div className="glass rounded-xl p-4 h-full">
-        <div className="font-hud text-[10px] text-cyan mb-3">File Explorer</div>
+        <div className="text-sm font-medium text-accent mb-3">File Explorer</div>
         <div className="flex items-center gap-2 text-text-muted text-xs">
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
             className="w-3 h-3 border border-accent border-t-transparent rounded-full" />
@@ -112,7 +112,7 @@ export function FileExplorer({ files, loading }: FileExplorerProps) {
   return (
     <div className="glass rounded-xl p-4 h-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
-        <span className="font-hud text-[10px] text-cyan">File Explorer</span>
+        <span className="text-sm font-medium text-accent">File Explorer</span>
         <span className="text-[10px] text-text-muted font-mono">{totalFiles} files</span>
       </div>
       <div className="flex-1 overflow-y-auto space-y-0.5">

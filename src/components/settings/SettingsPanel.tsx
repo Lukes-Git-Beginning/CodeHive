@@ -74,9 +74,9 @@ export function SettingsPanel() {
 
   return (
     <div className="h-full overflow-y-auto p-8 max-w-2xl mx-auto space-y-0">
-      <h2 className="font-hud text-sm text-accent holo-text mb-8 flex items-center gap-2">
-        <Settings className="w-4 h-4" />
-        System Configuration
+      <h2 className="text-lg font-semibold text-text-primary mb-8 flex items-center gap-2">
+        <Settings className="w-5 h-5 text-accent" />
+        Einstellungen
       </h2>
 
       {/* Orchestrator */}
@@ -85,7 +85,7 @@ export function SettingsPanel() {
         animate={{ opacity: 1, y: 0 }}
         className="glass-elevated rounded-xl p-6 mb-6"
       >
-        <h3 className="font-hud text-[11px] text-cyan text-glow-cyan mb-4 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-cyan mb-4 flex items-center gap-2">
           <ClipboardCheck className="w-3.5 h-3.5" />
           Orchestrator
         </h3>
@@ -128,14 +128,14 @@ export function SettingsPanel() {
         transition={{ delay: 0.05 }}
         className="glass-elevated rounded-xl p-6 mb-6"
       >
-        <h3 className="font-hud text-[11px] text-violet mb-4 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-violet mb-4 flex items-center gap-2">
           <Bot className="w-3.5 h-3.5" />
           Agents
         </h3>
 
         <div className="space-y-4">
           <div>
-            <label className="font-hud text-[10px] text-text-muted mb-1.5 block">Default Model</label>
+            <label className="text-xs font-medium text-text-muted mb-1.5 block">Default Model</label>
             <select
               value={defaultModel}
               onChange={(e) => { setDefaultModel(e.target.value); save('default_model', e.target.value) }}
@@ -157,7 +157,7 @@ export function SettingsPanel() {
         transition={{ delay: 0.1 }}
         className="glass-elevated rounded-xl p-6 mb-6"
       >
-        <h3 className="font-hud text-[11px] text-accent mb-4 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-accent mb-4 flex items-center gap-2">
           <Key className="w-3.5 h-3.5" />
           Claude CLI
         </h3>
@@ -170,7 +170,7 @@ export function SettingsPanel() {
           <button
             onClick={testConnection}
             disabled={testing}
-            className="ml-auto text-[11px] font-hud text-accent bg-accent/10 border border-accent/20
+            className="ml-auto text-[11px] font-mediumtext-accent bg-accent/10 border border-accent/20
                        rounded-lg px-3 py-1 hover:bg-accent/20 transition-colors disabled:opacity-50"
           >
             {testing ? 'Testing...' : 'Test Connection'}
@@ -185,7 +185,7 @@ export function SettingsPanel() {
         transition={{ delay: 0.12 }}
         className="glass-elevated rounded-xl p-6 mb-6"
       >
-        <h3 className="font-hud text-[11px] text-warning mb-4 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-warning mb-4 flex items-center gap-2">
           <HardDrive className="w-3.5 h-3.5" />
           Local LLM (Ollama)
         </h3>
@@ -198,7 +198,7 @@ export function SettingsPanel() {
           </span>
           <button
             onClick={() => checkOllamaStatus().then(setOllamaStatus)}
-            className="ml-auto text-[11px] font-hud text-warning bg-warning/10 border border-warning/20
+            className="ml-auto text-[11px] font-mediumtext-warning bg-warning/10 border border-warning/20
                        rounded-lg px-3 py-1 hover:bg-warning/20 transition-colors"
           >
             Prüfen
@@ -246,7 +246,7 @@ export function SettingsPanel() {
         transition={{ delay: 0.2 }}
         className="glass-elevated rounded-xl p-6 mb-6"
       >
-        <h3 className="font-hud text-[11px] text-warning mb-4 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-warning mb-4 flex items-center gap-2">
           <Palette className="w-3.5 h-3.5" />
           Appearance
         </h3>
@@ -300,7 +300,7 @@ function SchedulerSection() {
       transition={{ delay: 0.17 }}
       className="glass-elevated rounded-xl p-6 mb-6"
     >
-      <h3 className="font-hud text-[11px] text-cyan text-glow-cyan mb-4 flex items-center gap-2">
+      <h3 className="text-sm font-medium text-cyan mb-4 flex items-center gap-2">
         <Clock className="w-3.5 h-3.5" />
         Zeitpläne
       </h3>
@@ -359,10 +359,10 @@ function SchedulerSection() {
                 <option key={val} value={val}>{label}</option>
               ))}
             </select>
-            <button onClick={handleAdd} className="text-[11px] font-hud text-accent bg-accent/10 border border-accent/20 rounded-lg px-4 py-2 hover:bg-accent/20 transition-colors">
+            <button onClick={handleAdd} className="text-[11px] font-mediumtext-accent bg-accent/10 border border-accent/20 rounded-lg px-4 py-2 hover:bg-accent/20 transition-colors">
               Erstellen
             </button>
-            <button onClick={() => setShowForm(false)} className="text-[11px] font-hud text-text-muted hover:text-text-primary transition-colors px-2">
+            <button onClick={() => setShowForm(false)} className="text-[11px] font-mediumtext-text-muted hover:text-text-primary transition-colors px-2">
               Abbrechen
             </button>
           </div>
@@ -370,7 +370,7 @@ function SchedulerSection() {
       ) : (
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 text-[11px] font-hud text-cyan bg-cyan/10 border border-cyan/20 rounded-lg px-3 py-2 hover:bg-cyan/20 transition-colors mb-3"
+          className="flex items-center gap-2 text-[11px] font-mediumtext-accent bg-accent/10 border border-accent/20 rounded-lg px-3 py-2 hover:bg-accent/20 transition-colors mb-3"
         >
           <Plus className="w-3.5 h-3.5" />
           Neuer Zeitplan
@@ -380,7 +380,7 @@ function SchedulerSection() {
       {/* Templates */}
       {project && (
         <div>
-          <p className="text-[9px] font-hud text-text-muted mb-2">Vorlagen</p>
+          <p className="text-[9px] font-mediumtext-text-muted mb-2">Vorlagen</p>
           <div className="flex flex-wrap gap-1.5">
             {TEMPLATES.map((t) => (
               <button
@@ -431,7 +431,7 @@ function TeamSection() {
       transition={{ delay: 0.19 }}
       className="glass-elevated rounded-xl p-6 mb-6"
     >
-      <h3 className="font-hud text-[11px] text-violet mb-4 flex items-center gap-2">
+      <h3 className="text-sm font-medium text-violet mb-4 flex items-center gap-2">
         <Users className="w-3.5 h-3.5" />
         Team
       </h3>
@@ -494,10 +494,10 @@ function TeamSection() {
             />
           </div>
           <div className="flex gap-2">
-            <button onClick={handleAdd} className="text-[11px] font-hud text-violet bg-violet/10 border border-violet/20 rounded-lg px-4 py-2 hover:bg-violet/20 transition-colors">
+            <button onClick={handleAdd} className="text-[11px] font-mediumtext-accent bg-accent/10 border border-accent/20 rounded-lg px-4 py-2 hover:bg-accent/20 transition-colors">
               Hinzufügen
             </button>
-            <button onClick={() => setShowForm(false)} className="text-[11px] font-hud text-text-muted hover:text-text-primary transition-colors px-2">
+            <button onClick={() => setShowForm(false)} className="text-[11px] font-mediumtext-text-muted hover:text-text-primary transition-colors px-2">
               Abbrechen
             </button>
           </div>
@@ -505,7 +505,7 @@ function TeamSection() {
       ) : (
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 text-[11px] font-hud text-violet bg-violet/10 border border-violet/20 rounded-lg px-3 py-2 hover:bg-violet/20 transition-colors"
+          className="flex items-center gap-2 text-[11px] font-mediumtext-accent bg-accent/10 border border-accent/20 rounded-lg px-3 py-2 hover:bg-accent/20 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           Mitglied hinzufügen
@@ -570,7 +570,7 @@ function DataSyncSection() {
       transition={{ delay: 0.22 }}
       className="glass-elevated rounded-xl p-6 mb-6"
     >
-      <h3 className="font-hud text-[11px] text-cyan text-glow-cyan mb-4 flex items-center gap-2">
+      <h3 className="text-sm font-medium text-cyan mb-4 flex items-center gap-2">
         <Database className="w-3.5 h-3.5" />
         Daten & Sync
       </h3>
@@ -579,7 +579,7 @@ function DataSyncSection() {
       <div className="flex items-center gap-3 glass rounded-lg px-3 py-2 mb-4">
         <Monitor className="w-3.5 h-3.5 text-text-muted" />
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-hud text-text-muted">Machine ID</p>
+          <p className="text-[10px] font-mediumtext-text-muted">Machine ID</p>
           <p className="text-xs font-mono text-text-secondary truncate">{machineId || '...'}</p>
         </div>
       </div>
@@ -600,8 +600,8 @@ function DataSyncSection() {
           onClick={handleImport}
           disabled={importing}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg
-                     bg-cyan/10 border border-cyan/20 text-cyan text-[11px] font-hud
-                     hover:bg-cyan/20 transition-colors disabled:opacity-30"
+                     bg-accent/10 border border-accent/20 text-accent text-[11px] font-hud
+                     hover:bg-accent/20 transition-colors disabled:opacity-30"
         >
           <Upload className="w-3.5 h-3.5" />
           {importing ? 'Importiere...' : 'Daten importieren'}
@@ -627,8 +627,8 @@ function ThemeCards() {
         onClick={() => setTheme('dark')}
         className={`flex-1 rounded-lg p-3 text-center transition-all ${theme === 'dark' ? 'glass-accent' : 'glass'}`}
       >
-        <div className="w-full h-8 rounded mb-2" style={{ backgroundColor: '#0a0e27', border: '1px solid rgba(0,255,136,0.2)' }} />
-        <span className={`text-[11px] font-hud ${theme === 'dark' ? 'text-accent' : 'text-text-muted'}`}>
+        <div className="w-full h-8 rounded-lg mb-2" style={{ backgroundColor: '#0f0b08', border: '1px solid rgba(196,112,42,0.2)' }} />
+        <span className={`text-xs font-medium ${theme === 'dark' ? 'text-accent' : 'text-text-muted'}`}>
           Dark{theme === 'dark' ? ' (Aktiv)' : ''}
         </span>
       </button>
@@ -636,8 +636,8 @@ function ThemeCards() {
         onClick={() => setTheme('light')}
         className={`flex-1 rounded-lg p-3 text-center transition-all ${theme === 'light' ? 'glass-accent' : 'glass'}`}
       >
-        <div className="w-full h-8 rounded mb-2" style={{ backgroundColor: '#f0f2f5', border: '1px solid rgba(0,0,0,0.1)' }} />
-        <span className={`text-[11px] font-hud ${theme === 'light' ? 'text-accent' : 'text-text-muted'}`}>
+        <div className="w-full h-8 rounded-lg mb-2" style={{ backgroundColor: '#f5f0ea', border: '1px solid rgba(139,90,43,0.15)' }} />
+        <span className={`text-xs font-medium ${theme === 'light' ? 'text-accent' : 'text-text-muted'}`}>
           Light{theme === 'light' ? ' (Aktiv)' : ''}
         </span>
       </button>

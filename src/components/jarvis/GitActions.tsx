@@ -93,7 +93,7 @@ export function GitActions({ projectPath }: GitActionsProps) {
         <button
           onClick={() => setActiveForm(activeForm === 'commit' ? null : 'commit')}
           disabled={loading !== null}
-          className="flex items-center gap-1 text-[9px] font-hud text-accent bg-accent/10 border border-accent/20 rounded px-2 py-1 hover:bg-accent/20 transition-colors disabled:opacity-30"
+          className="flex items-center gap-1 text-[9px] font-medium text-accent bg-accent/10 border border-accent/20 rounded px-2 py-1 hover:bg-accent/20 transition-colors disabled:opacity-30"
         >
           <GitCommitHorizontal className="w-3 h-3" />
           Commit
@@ -101,7 +101,7 @@ export function GitActions({ projectPath }: GitActionsProps) {
         <button
           onClick={handlePush}
           disabled={loading !== null}
-          className="flex items-center gap-1 text-[9px] font-hud text-cyan bg-cyan/10 border border-cyan/20 rounded px-2 py-1 hover:bg-cyan/20 transition-colors disabled:opacity-30"
+          className="flex items-center gap-1 text-[9px] font-medium text-accent bg-accent/10 border border-accent/20 rounded px-2 py-1 hover:bg-accent/20 transition-colors disabled:opacity-30"
         >
           {loading === 'push' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
           Push
@@ -109,7 +109,7 @@ export function GitActions({ projectPath }: GitActionsProps) {
         <button
           onClick={handlePull}
           disabled={loading !== null}
-          className="flex items-center gap-1 text-[9px] font-hud text-violet bg-violet/10 border border-violet/20 rounded px-2 py-1 hover:bg-violet/20 transition-colors disabled:opacity-30"
+          className="flex items-center gap-1 text-[9px] font-medium text-text-secondary bg-text-secondary/10 border border-text-secondary/20 rounded px-2 py-1 hover:bg-text-secondary/20 transition-colors disabled:opacity-30"
         >
           {loading === 'pull' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
           Pull
@@ -117,7 +117,7 @@ export function GitActions({ projectPath }: GitActionsProps) {
         <button
           onClick={() => setActiveForm(activeForm === 'branch' ? null : 'branch')}
           disabled={loading !== null}
-          className="flex items-center gap-1 text-[9px] font-hud text-warning bg-warning/10 border border-warning/20 rounded px-2 py-1 hover:bg-warning/20 transition-colors disabled:opacity-30"
+          className="flex items-center gap-1 text-[9px] font-medium text-warning bg-warning/10 border border-warning/20 rounded px-2 py-1 hover:bg-warning/20 transition-colors disabled:opacity-30"
         >
           <GitBranch className="w-3 h-3" />
           Branch
@@ -160,7 +160,7 @@ export function GitActions({ projectPath }: GitActionsProps) {
               <button
                 onClick={handleCommit}
                 disabled={!commitMsg.trim() || loading !== null}
-                className="text-[9px] font-hud text-accent bg-accent/10 border border-accent/20 rounded px-3 py-1 hover:bg-accent/20 transition-colors disabled:opacity-30"
+                className="text-[9px] font-medium text-accent bg-accent/10 border border-accent/20 rounded px-3 py-1 hover:bg-accent/20 transition-colors disabled:opacity-30"
               >
                 {loading === 'commit' ? 'Committing...' : 'Commit'}
               </button>
@@ -186,7 +186,7 @@ export function GitActions({ projectPath }: GitActionsProps) {
               <button
                 onClick={handleBranch}
                 disabled={!branchName.trim() || loading !== null}
-                className="text-[9px] font-hud text-warning bg-warning/10 border border-warning/20 rounded px-3 py-1 hover:bg-warning/20 transition-colors disabled:opacity-30"
+                className="text-[9px] font-medium text-warning bg-warning/10 border border-warning/20 rounded px-3 py-1 hover:bg-warning/20 transition-colors disabled:opacity-30"
               >
                 Erstellen
               </button>

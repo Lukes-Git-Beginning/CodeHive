@@ -30,9 +30,31 @@ function getFileName(path: string): string {
   return path.replace(/\\/g, '/').split('/').pop() || path
 }
 
+interface FileEntry {
+  name: string
+  path: string
+  is_dir: boolean
+  size: number
+  children: FileEntry[]
+}
+
+function flattenEntries(entries: FileEntry[], prefix = ''): string[] {
+  const paths: string[] = []
+  for (const entry of entries) {
+    const fullPath = prefix ? `${prefix}/${entry.name}` : entry.name
+    if (entry.is_dir) {
+      paths.push(...flattenEntries(entry.children, fullPath))
+    } else {
+      paths.push(fullPath)
+    }
+  }
+  return paths
+}
+
 export async function scanCodebase(projectPath: string): Promise<ScanResult> {
   try {
-    const files: string[] = await invoke('list_project_files', { path: projectPath })
+    const entries = await invoke<FileEntry[]>('list_project_files', { path: projectPath })
+    const files = flattenEntries(entries)
 
     const modules: ModuleInfo[] = files
       .filter(f => /\.(tsx?|rs|css|json|toml)$/.test(f))
@@ -40,7 +62,7 @@ export async function scanCodebase(projectPath: string): Promise<ScanResult> {
         path: f,
         type: categorizeFile(f),
         name: getFileName(f),
-        sizeBytes: 0, // Size not available from list_project_files
+        sizeBytes: 0,
       }))
 
     const modulesByType: Record<string, ModuleInfo[]> = {}

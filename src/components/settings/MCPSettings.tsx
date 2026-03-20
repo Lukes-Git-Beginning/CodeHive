@@ -56,15 +56,15 @@ export function MCPSettings() {
     <div>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Server className="w-4 h-4 text-cyan" />
-          <span className="font-hud text-xs text-cyan">MCP Servers</span>
+          <Server className="w-4 h-4 text-accent" />
+          <span className="font-semibold text-xs text-accent">MCP Servers</span>
           <span className="text-[9px] text-text-muted font-mono">
             {enabledCount}/{servers.length} aktiv
           </span>
         </div>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="glass neon-hover rounded-lg px-2 py-1 text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
+          className="glass hover-lift rounded-lg px-2 py-1 text-[10px] text-text-muted hover:text-accent flex items-center gap-1"
         >
           <Plus className="w-3 h-3" />
           Custom

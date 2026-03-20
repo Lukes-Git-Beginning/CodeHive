@@ -7,6 +7,7 @@ export type AgentRole =
   | 'uiux'
   | 'security'
   | 'architect'
+  | 'analyst'
 
 export type AgentStatus = 'idle' | 'thinking' | 'working' | 'done' | 'error'
 

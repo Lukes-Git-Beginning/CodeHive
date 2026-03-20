@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div role="alert" aria-live="assertive" className="flex flex-col items-center justify-center h-full p-8 text-center">
           <AlertTriangle className="w-10 h-10 text-danger mb-3" />
-          <p className="font-hud text-xs text-danger mb-2">
+          <p className="font-medium text-xs text-danger mb-2">
             {this.props.label ? `${this.props.label} — ` : ''}System Error
           </p>
           <p className="text-xs text-text-muted max-w-md font-mono mb-4">
@@ -43,7 +43,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </p>
           <button
             onClick={this.handleReset}
-            className="glass neon-hover rounded-lg px-4 py-2 text-xs text-accent font-hud"
+            className="glass hover-lift rounded-lg px-4 py-2 text-xs text-accent font-medium"
           >
             Retry
           </button>

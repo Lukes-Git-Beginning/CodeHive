@@ -22,11 +22,11 @@ interface Suggestion {
 
 const CATEGORY_COLORS: Record<string, string> = {
   security: 'text-danger',
-  testing: 'text-violet',
-  review: 'text-cyan',
+  testing: 'text-text-secondary',
+  review: 'text-accent',
   learn: 'text-warning',
   improve: 'text-accent',
-  git: 'text-cyan',
+  git: 'text-accent',
 }
 
 function generateSuggestions(
@@ -247,7 +247,7 @@ export function ProactiveSuggestions() {
               initial={{ opacity: 0, y: 10, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="glass-holo rounded-full px-4 py-2 flex items-center gap-2.5 text-xs group hover:border-accent/30 transition-all"
+              className="glass rounded-full px-4 py-2 flex items-center gap-2.5 text-xs group hover:border-accent/30 transition-all"
             >
               <Icon className={`w-3.5 h-3.5 shrink-0 ${color}`} />
               <span className="text-text-primary text-[11px]">{suggestion.text}</span>

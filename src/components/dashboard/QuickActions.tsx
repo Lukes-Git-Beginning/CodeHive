@@ -6,9 +6,9 @@ interface QuickActionsProps {
 }
 
 const actions = [
-  { icon: FileSearch, label: 'Analyze', prompt: 'Analysiere die Projektstruktur und erstelle eine Zusammenfassung', color: 'text-cyan' },
+  { icon: FileSearch, label: 'Analyze', prompt: 'Analysiere die Projektstruktur und erstelle eine Zusammenfassung', color: 'text-accent' },
   { icon: Bug, label: 'Fix Bugs', prompt: 'Finde und behebe Bugs im Code', color: 'text-danger' },
-  { icon: TestTube, label: 'Tests', prompt: 'Schreibe Tests für die wichtigsten Funktionen', color: 'text-violet' },
+  { icon: TestTube, label: 'Tests', prompt: 'Schreibe Tests für die wichtigsten Funktionen', color: 'text-text-secondary' },
   { icon: RefreshCw, label: 'Refactor', prompt: 'Refactore den Code für bessere Lesbarkeit', color: 'text-warning' },
   { icon: Play, label: 'New Feature', prompt: 'Implementiere ein neues Feature: ', color: 'text-accent' },
   { icon: Rocket, label: 'Deploy', prompt: 'Bereite das Projekt für Deployment vor', color: 'text-accent' },
@@ -17,7 +17,7 @@ const actions = [
 export function QuickActions({ onAction }: QuickActionsProps) {
   return (
     <div className="glass rounded-xl p-4">
-      <div className="font-hud text-[10px] text-accent mb-3">Quick Actions</div>
+      <div className="text-sm font-medium text-accent mb-3">Quick Actions</div>
       <div className="grid grid-cols-3 gap-2">
         {actions.map(({ icon: Icon, label, prompt, color }, i) => (
           <motion.button

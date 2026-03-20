@@ -124,7 +124,7 @@ export function CommandPalette({
                 placeholder="Metis Command..."
                 className="flex-1 bg-transparent text-sm text-text-primary placeholder-text-muted outline-none font-mono"
               />
-              <span className="text-[9px] font-hud text-text-muted">ESC</span>
+              <span className="text-[9px] font-medium text-text-muted">ESC</span>
             </div>
 
             {/* Commands */}

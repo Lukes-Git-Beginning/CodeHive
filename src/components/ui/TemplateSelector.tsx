@@ -18,9 +18,9 @@ const CATEGORY_LABELS: Record<TemplateCategory, string> = {
 }
 
 const CATEGORY_COLORS: Record<TemplateCategory, string> = {
-  analysis: 'text-cyan',
+  analysis: 'text-accent',
   generation: 'text-accent',
-  review: 'text-violet',
+  review: 'text-text-secondary',
   deployment: 'text-warning',
   custom: 'text-text-secondary',
 }
@@ -48,7 +48,7 @@ export function TemplateSelector() {
     <div className="h-full overflow-y-auto p-4">
       <div className="flex items-center gap-3 mb-6">
         <Layers className="w-5 h-5 text-accent" />
-        <h2 className="font-hud text-sm text-accent text-glow-green">Agent Templates</h2>
+        <h2 className="font-semibold text-sm text-accent">Agent Templates</h2>
       </div>
 
       {!project ? (
@@ -59,7 +59,7 @@ export function TemplateSelector() {
             const templates = BUILTIN_TEMPLATES.filter((t) => t.category === cat)
             return (
               <section key={cat}>
-                <h3 className={`font-hud text-[10px] mb-3 ${CATEGORY_COLORS[cat]}`}>
+                <h3 className={`font-medium text-[10px] mb-3 ${CATEGORY_COLORS[cat]}`}>
                   {CATEGORY_LABELS[cat]}
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -70,7 +70,7 @@ export function TemplateSelector() {
                         key={template.id}
                         onClick={() => handleSelect(template)}
                         disabled={loadingId === template.id}
-                        className="glass neon-hover rounded-xl p-4 text-left group transition-all disabled:opacity-50"
+                        className="glass hover-lift rounded-xl p-4 text-left group transition-all disabled:opacity-50"
                       >
                         <div className="flex items-center gap-2.5 mb-2">
                           {loadingId === template.id ? (

@@ -17,7 +17,7 @@ function AgentCard({ agent, expanded = false }: { agent: AgentInstance; expanded
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           <Cpu className="w-3 h-3 text-text-muted" />
-          <span className="text-[10px] font-hud text-accent">{agent.role}</span>
+          <span className="text-[10px] font-medium text-accent">{agent.role}</span>
         </div>
         <span className={`text-[9px] font-mono ${statusColor}`}>
           {agent.status}
@@ -129,7 +129,7 @@ function PlanSection({ plan }: { plan: PendingPlan }) {
             {task.role && (
               <span className="font-mono text-[8px] text-text-muted bg-bg-surface px-1 rounded">{task.role}</span>
             )}
-            <span className="font-mono text-[8px] text-cyan">{task.model}</span>
+            <span className="font-mono text-[8px] text-accent">{task.model}</span>
           </div>
         ))}
       </div>
@@ -172,8 +172,8 @@ export function MindPalace({ isOpen, onClose }: MindPalaceProps) {
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
               <div className="flex items-center gap-3">
-                <BrainCircuit className="w-5 h-5 text-violet animate-pulse-glow" />
-                <h2 className="font-hud text-sm text-text-primary">Mind Palace</h2>
+                <BrainCircuit className="w-5 h-5 text-text-secondary animate-pulse-glow" />
+                <h2 className="font-semibold text-sm text-text-primary">Mind Palace</h2>
               </div>
               <button
                 onClick={onClose}
@@ -188,7 +188,7 @@ export function MindPalace({ isOpen, onClose }: MindPalaceProps) {
               {/* Active Agents */}
               {currentRun && currentRun.agents.length > 0 && (
                 <section>
-                  <div className="flex items-center gap-2 text-text-secondary font-hud text-[10px] mb-3">
+                  <div className="flex items-center gap-2 text-text-secondary font-medium text-[10px] mb-3">
                     <Cpu className="w-3.5 h-3.5" />
                     <span>Active Agents ({currentRun.agents.length})</span>
                   </div>
@@ -203,7 +203,7 @@ export function MindPalace({ isOpen, onClose }: MindPalaceProps) {
               {/* Pending Plan */}
               {pendingPlan && (
                 <section>
-                  <div className="flex items-center gap-2 text-text-secondary font-hud text-[10px] mb-3">
+                  <div className="flex items-center gap-2 text-text-secondary font-medium text-[10px] mb-3">
                     <ActivitySquare className="w-3.5 h-3.5" />
                     <span>Pending Plan</span>
                   </div>
@@ -214,14 +214,14 @@ export function MindPalace({ isOpen, onClose }: MindPalaceProps) {
               {/* Git Intelligence */}
               {gitStatus?.is_git_repo && (
                 <section>
-                  <div className="flex items-center gap-2 text-text-secondary font-hud text-[10px] mb-3">
+                  <div className="flex items-center gap-2 text-text-secondary font-medium text-[10px] mb-3">
                     <GitBranch className="w-3.5 h-3.5" />
                     <span>Git ({gitStatus.branch})</span>
                   </div>
 
                   {gitStatus.files.length > 0 && (
                     <div className="space-y-1 mb-3">
-                      <p className="text-[9px] font-hud text-text-muted mb-1.5">
+                      <p className="text-[9px] font-medium text-text-muted mb-1.5">
                         {gitStatus.files.length} ungespeicherte Änderungen
                       </p>
                       {gitStatus.files.slice(0, 8).map((file) => (
@@ -242,11 +242,11 @@ export function MindPalace({ isOpen, onClose }: MindPalaceProps) {
 
                   {gitCommits.length > 0 && (
                     <div className="space-y-1.5">
-                      <p className="text-[9px] font-hud text-text-muted mb-1.5">Letzte Commits</p>
+                      <p className="text-[9px] font-medium text-text-muted mb-1.5">Letzte Commits</p>
                       {gitCommits.slice(0, 5).map((c) => (
                         <div key={c.hash} className="glass rounded-md px-2.5 py-1.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-[9px] text-cyan shrink-0">{c.short_hash}</span>
+                            <span className="font-mono text-[9px] text-accent shrink-0">{c.short_hash}</span>
                             <span className="text-[10px] text-text-primary truncate flex-1">{c.message}</span>
                           </div>
                           <div className="flex gap-2 mt-0.5">
@@ -270,7 +270,7 @@ export function MindPalace({ isOpen, onClose }: MindPalaceProps) {
               {/* Run History — klickbar mit Agent-Details */}
               {runHistory.length > 0 && (
                 <section>
-                  <div className="flex items-center gap-2 text-text-secondary font-hud text-[10px] mb-3">
+                  <div className="flex items-center gap-2 text-text-secondary font-medium text-[10px] mb-3">
                     <Clock className="w-3.5 h-3.5" />
                     <span>History ({runHistory.length})</span>
                   </div>
@@ -285,7 +285,7 @@ export function MindPalace({ isOpen, onClose }: MindPalaceProps) {
               {/* Project Tasks */}
               {tasks.length > 0 && (
                 <section>
-                  <div className="flex items-center gap-2 text-text-secondary font-hud text-[10px] mb-3">
+                  <div className="flex items-center gap-2 text-text-secondary font-medium text-[10px] mb-3">
                     <ListTodo className="w-3.5 h-3.5" />
                     <span>Project Tasks ({tasks.length})</span>
                   </div>
@@ -293,7 +293,7 @@ export function MindPalace({ isOpen, onClose }: MindPalaceProps) {
                     {tasks.slice(0, 8).map((task) => (
                       <div key={task.id} className="flex items-start gap-2 text-xs">
                         <span className={`mt-0.5 ${
-                          task.status === 'done' ? 'text-accent' : task.status === 'in_progress' ? 'text-cyan' : 'text-text-muted'
+                          task.status === 'done' ? 'text-accent' : task.status === 'in_progress' ? 'text-accent' : 'text-text-muted'
                         }`}>
                           {task.status === 'done' ? '✓' : '▹'}
                         </span>

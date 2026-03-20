@@ -102,7 +102,7 @@ export function ShortcutOverlay({ isOpen, onClose }: ShortcutOverlayProps) {
               <div className="flex items-center justify-between p-5 border-b border-border">
                 <div className="flex items-center gap-3">
                   <Keyboard className="w-5 h-5 text-accent" />
-                  <h2 className="font-hud text-sm text-text-primary">Tastenkürzel</h2>
+                  <h2 className="font-semibold text-sm text-text-primary">Tastenkürzel</h2>
                 </div>
                 <button
                   ref={closeRef}
@@ -118,7 +118,7 @@ export function ShortcutOverlay({ isOpen, onClose }: ShortcutOverlayProps) {
               <div className="p-5 grid grid-cols-3 gap-6">
                 {SHORTCUT_GROUPS.map((group) => (
                   <div key={group.title}>
-                    <h3 className="font-hud text-[9px] text-text-muted mb-3">{group.title}</h3>
+                    <h3 className="font-medium text-[9px] text-text-muted mb-3">{group.title}</h3>
                     <div className="space-y-2.5">
                       {group.shortcuts.map((s) => (
                         <div key={s.keys} className="flex items-center justify-between gap-3">

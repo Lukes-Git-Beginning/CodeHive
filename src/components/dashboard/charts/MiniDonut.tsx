@@ -31,7 +31,7 @@ export function MiniDonut({ value, color, size = 64, label }: MiniDonutProps) {
           <span className="font-mono text-xs" style={{ color }}>{clamped}%</span>
         </div>
       </div>
-      {label && <span className="font-hud text-[8px] text-text-muted">{label}</span>}
+      {label && <span className="text-[10px] font-medium text-text-muted">{label}</span>}
     </div>
   )
 }

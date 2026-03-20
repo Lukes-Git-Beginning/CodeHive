@@ -11,9 +11,9 @@ import type { Task } from '../../types/project'
 import type { ChatMessage } from '../../types/agent'
 
 const columns = [
-  { id: 'planned' as const, label: 'Planned', icon: Clock, color: 'text-text-muted', borderColor: 'border-white/5' },
-  { id: 'in_progress' as const, label: 'In Progress', icon: Loader2, color: 'text-cyan', borderColor: 'border-cyan/20' },
-  { id: 'done' as const, label: 'Complete', icon: CheckCircle, color: 'text-accent', borderColor: 'border-accent/20' },
+  { id: 'planned' as const, label: 'Geplant', icon: Clock, color: 'text-text-muted', borderColor: 'border-border' },
+  { id: 'in_progress' as const, label: 'In Arbeit', icon: Loader2, color: 'text-accent', borderColor: 'border-accent/20' },
+  { id: 'done' as const, label: 'Erledigt', icon: CheckCircle, color: 'text-success', borderColor: 'border-success/20' },
 ]
 
 export function RoadmapView() {
@@ -125,7 +125,7 @@ export function RoadmapView() {
 
   return (
     <div className="h-full flex flex-col p-6">
-      <h2 className="font-hud text-sm text-accent text-glow-green mb-6">Mission Board</h2>
+      <h2 className="font-label text-lg text-text-primary mb-6">Roadmap</h2>
 
       <div className="flex-1 grid grid-cols-3 gap-5 min-h-0">
         {columns.map((col) => {
@@ -138,8 +138,8 @@ export function RoadmapView() {
               <div className={`glass rounded-t-xl px-4 py-3 border-b ${col.borderColor} flex items-center justify-between`}>
                 <div className="flex items-center gap-2">
                   <Icon className={`w-3.5 h-3.5 ${col.color}`} />
-                  <span className={`font-hud text-[10px] ${col.color}`}>{col.label}</span>
-                  <span className="text-[10px] text-text-muted font-mono bg-white/5 rounded-full px-1.5">
+                  <span className={`text-sm font-medium ${col.color}`}>{col.label}</span>
+                  <span className="text-xs text-text-muted font-mono bg-bg-surface rounded-full px-1.5">
                     {colTasks.length}
                   </span>
                 </div>
@@ -180,7 +180,7 @@ export function RoadmapView() {
                         <div className="flex gap-1.5 mt-2">
                           <button
                             onClick={() => handleAddTask(col.id)}
-                            className="text-[10px] font-hud bg-accent/20 text-accent px-2 py-0.5 rounded"
+                            className="text-[10px] font-medium bg-accent/20 text-accent px-2 py-0.5 rounded"
                           >
                             Hinzufügen
                           </button>
@@ -217,7 +217,7 @@ export function RoadmapView() {
                     <div className="flex items-center gap-2 mb-1.5">
                       <p className="text-xs text-text-primary flex-1">{task.title}</p>
                       {task.priority !== undefined && (
-                        <span className={`text-[8px] font-hud px-1.5 py-0.5 rounded ${
+                        <span className={`text-[8px] font-medium px-1.5 py-0.5 rounded ${
                           task.priority >= 2 ? 'bg-danger/15 text-danger' :
                           task.priority === 1 ? 'bg-warning/15 text-warning' :
                           'bg-success/15 text-success'
@@ -259,7 +259,7 @@ export function RoadmapView() {
                           onClick={() => handleExecuteTask(task)}
                           disabled={isRunning}
                           aria-label="Metis ausführen lassen"
-                          className="text-[9px] font-hud text-accent bg-accent/10 hover:bg-accent/20 px-2 py-0.5 rounded flex items-center gap-0.5 disabled:opacity-30"
+                          className="text-[9px] font-medium text-accent bg-accent/10 hover:bg-accent/20 px-2 py-0.5 rounded flex items-center gap-0.5 disabled:opacity-30"
                           title="Metis ausführen lassen"
                         >
                           {executingTaskId === task.id ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Play className="w-2.5 h-2.5" />}

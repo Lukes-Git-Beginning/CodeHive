@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Brain, Search, Trash2, BookOpen, FileText, Clock, ChevronDown, RefreshCw } from 'lucide-react'
+import { Brain, Search, Trash2, BookOpen, FileText, Clock, ChevronDown, RefreshCw, ScanLine } from 'lucide-react'
 import { useProjectStore } from '../../stores/projectStore'
 import { getAllKnowledge, deleteKnowledge, searchKnowledge } from '../../services/rag'
 import { useNotificationStore } from '../../stores/notificationStore'
@@ -18,6 +18,7 @@ function KnowledgeCard({ entry, onDelete }: { entry: KnowledgeEntry; onDelete: (
   const [expanded, setExpanded] = useState(false)
 
   const getIcon = () => {
+    if (entry.key.startsWith('deepscan:')) return ScanLine
     if (entry.key.startsWith('project:')) return BookOpen
     if (entry.key.startsWith('run:')) return Clock
     if (entry.key.startsWith('learning:')) return Brain
@@ -25,6 +26,15 @@ function KnowledgeCard({ entry, onDelete }: { entry: KnowledgeEntry; onDelete: (
   }
 
   const getTypeLabel = () => {
+    if (entry.key.startsWith('deepscan:')) {
+      const sub = entry.key.replace('deepscan:', '')
+      const labels: Record<string, string> = {
+        architecture: 'Architektur', entry_points: 'Entry Points', dependencies: 'Dependencies',
+        code_quality: 'Code-Qualität', features: 'Features', improvements: 'Verbesserungen',
+        inventory: 'Inventar', brief: 'Projekt-Brief', raw_analysis: 'KI-Analyse',
+      }
+      return `Deep Scan: ${labels[sub] || sub}`
+    }
     if (entry.key.startsWith('project:brief')) return 'Project Brief'
     if (entry.key.startsWith('run:')) return 'Run History'
     if (entry.key.startsWith('learning:')) return 'Learning'
@@ -32,9 +42,10 @@ function KnowledgeCard({ entry, onDelete }: { entry: KnowledgeEntry; onDelete: (
   }
 
   const getTypeColor = () => {
-    if (entry.key.startsWith('project:')) return 'text-accent border-accent/20 bg-accent/8'
-    if (entry.key.startsWith('run:')) return 'text-cyan border-cyan/20 bg-cyan/8'
-    if (entry.key.startsWith('learning:')) return 'text-violet border-violet/20 bg-violet/8'
+    if (entry.key.startsWith('deepscan:')) return 'text-success border-success/20 bg-success-dim'
+    if (entry.key.startsWith('project:')) return 'text-accent border-accent/20 bg-accent-dim'
+    if (entry.key.startsWith('run:')) return 'text-warning border-warning/20 bg-warning-dim'
+    if (entry.key.startsWith('learning:')) return 'text-text-secondary border-border bg-bg-elevated'
     return 'text-text-muted border-border bg-bg-surface'
   }
 
@@ -61,7 +72,7 @@ function KnowledgeCard({ entry, onDelete }: { entry: KnowledgeEntry; onDelete: (
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
           <Icon className="w-3.5 h-3.5 text-text-muted" />
-          <span className={`text-[9px] font-hud px-2 py-0.5 rounded border ${getTypeColor()}`}>
+          <span className={`text-[10px] font-medium px-2 py-0.5 rounded border ${getTypeColor()}`}>
             {getTypeLabel()}
           </span>
           <span className="text-[9px] text-text-muted font-mono">
@@ -174,8 +185,8 @@ export function KnowledgePanel() {
       <div className="p-4 border-b border-border glass shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Brain className="w-4 h-4 text-violet" />
-            <span className="font-hud text-xs text-violet">Knowledge Base</span>
+            <Brain className="w-4 h-4 text-accent" />
+            <span className="font-label text-sm text-text-primary">Knowledge Base</span>
           </div>
           <button
             onClick={loadEntries}
